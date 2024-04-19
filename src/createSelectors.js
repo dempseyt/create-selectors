@@ -1,7 +1,9 @@
-function createSelectors(selectorFns) {
-    const selectors = selectorFns; 
+import R from 'ramda'
 
-    selectors.selectState = (state, whoKnows) => state
+function createSelectors(selectorSpec) {
+    const selectors = {
+        selectState: selectorSpec._selector ?? R.identity
+    }
 
     return selectors
 }

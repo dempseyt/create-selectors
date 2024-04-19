@@ -14,5 +14,8 @@
     "@babel/preset-env": "^7.23.9",
     "babel-jest": "^29.7.0",
     "jest": "^29.7.0"
+  },
+  "dependencies": {
+    "ramda": "^0.29.1"
   }
 }
