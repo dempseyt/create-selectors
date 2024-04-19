@@ -128,5 +128,11 @@ describe(`create-selectors.js`, () => {
   it(`returns the root state if nothing else is specified`, () => {
     const selectors = createSelectors({})
     expect(selectors.selectState(state, {})).toEqual(state)
-  })
+  });
+  it(`uses a given selector instead of creating a new one`, () => {
+    const selectors = createSelectors({
+      _selector: (state, props) => state && state.rootOne,
+    })
+    expect(selectors.selectState(state, {})).toEqual(state.rootOne)
+  });
 })
