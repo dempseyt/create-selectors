@@ -9,6 +9,8 @@ function createSelectorName(selectorName) {
 function getDefaultValueForType(type) {
   if (type === "list") {
     return [];
+  } else if (type === "index") {
+    return {};
   }
 }
 
