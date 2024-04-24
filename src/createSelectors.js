@@ -25,21 +25,24 @@ function createSelectors(selectorSpec) {
     selectState: selectorSpec._selector ?? R.identity,
   };
 
-  for (const [propertyName, propertySelectorSpec] of Object.entries(
-    selectorSpec
-  )) {
-    if (propertySelectorSpec["_export"] !== false) {
-      const selectorFunction = (_state) => {
-        const state = selectors.selectState(_state);
-        return !Object.hasOwn(state, propertyName)
-          ? getDefaultForPropertySelector(propertySelectorSpec)
-          : state[propertyName];
-      };
-      selectors[createSelectorName(propertyName)] = selectorFunction;
-    }
-  }
-
-  return selectors;
+  const createdSelectors = Object.entries(selectorSpec).reduce(
+    (selectors, [propertyName, propertySelectorSpec]) => {
+      if (propertySelectorSpec["_export"] !== false) {
+        const selectorFunction = (_state) => {
+          const state = selectors.selectState(_state);
+          return !Object.hasOwn(state, propertyName)
+            ? getDefaultForPropertySelector(propertySelectorSpec)
+            : state[propertyName];
+        };
+        return {
+          ...selectors,
+          [createSelectorName(propertyName)]: selectorFunction,
+        };
+      }
+    },
+    selectors
+  );
+  return createdSelectors;
 }
 
 export default createSelectors;
