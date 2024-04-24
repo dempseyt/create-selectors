@@ -238,4 +238,16 @@ describe(`create-selectors.js`, () => {
       );
     });
   });
+  describe(`index selection`, () => {
+    it(`creates a selector for a simple index property`, () => {
+      const selectors = createSelectors({
+        anIndexOfObjects: {
+          _export: true,
+        },
+      });
+      expect(selectors.selectAnIndexOfObjects(state, {})).toEqual(
+        state.anIndexOfObjects
+      );
+    });
+  });
 });
