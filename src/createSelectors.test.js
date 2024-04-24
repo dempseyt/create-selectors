@@ -165,18 +165,29 @@ describe(`create-selectors.js`, () => {
       const { simpleBoolean, ...restState } = state;
       expect(selectors.selectSimpleBoolean(restState, {})).toEqual(true);
     });
-  });
-  it(`returns a default value for a simple property`, () => {
-    const selectors = createSelectors({
-      simpleString: {
-        _default: "default value",
-        _export: true,
-      },
+    it(`returns a default value for a simple property`, () => {
+      const selectors = createSelectors({
+        simpleString: {
+          _default: "default value",
+          _export: true,
+        },
+      });
+      // eslint-disable-next-line
+      const { simpleString, ...restState } = state;
+      expect(selectors.selectSimpleString(restState, {})).toEqual(
+        "default value"
+      );
     });
-    // eslint-disable-next-line
-    const { simpleString, ...restState } = state;
-    expect(selectors.selectSimpleString(restState, {})).toEqual(
-      "default value"
-    );
+    it(`creates a selector for a simple property with a different root`, () => {
+      const selectors = createSelectors({
+        _selector: (state, props) => state && state.rootOne,
+        simpleString: {
+          _export: true,
+        },
+      });
+      expect(selectors.selectSimpleString(state, {})).toEqual(
+        state.rootOne.simpleString
+      );
+    });
   });
 });
