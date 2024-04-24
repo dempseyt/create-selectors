@@ -12,7 +12,7 @@ function createSelectors(selectorSpec) {
   };
 
   for (const [key, value] of Object.entries(selectorSpec)) {
-    if (value["_export"] === true) {
+    if (value["_export"] !== false) {
       selectors[createSelectorName(key)] = (state) => state[key];
     }
   }
