@@ -6,6 +6,12 @@ function createSelectorName(selectorName) {
   )}`;
 }
 
+function getDefaultValueForType(type) {
+  if (type === "list") {
+    return [];
+  }
+}
+
 function createSelectors(selectorSpec) {
   const selectors = {
     selectState: selectorSpec._selector ?? R.identity,
@@ -17,6 +23,11 @@ function createSelectors(selectorSpec) {
         const state = selectors.selectState(_state);
         if (!Object.hasOwn(state, key) && Object.hasOwn(value, "_default")) {
           return value["_default"];
+        } else if (
+          !Object.hasOwn(state, key) &&
+          Object.hasOwn(value, "_type")
+        ) {
+          return getDefaultValueForType(value["_type"]);
         }
         return state[key];
       };
