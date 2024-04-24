@@ -12,26 +12,30 @@ function getDefaultValueForType(type) {
   }
 }
 
+function getDefaultForPropertySelector(propertySelectorSpec) {
+  if (Object.hasOwn(propertySelectorSpec, "_default")) {
+    return propertySelectorSpec["_default"];
+  } else if (Object.hasOwn(propertySelectorSpec, "_type")) {
+    return getDefaultValueForType(propertySelectorSpec["_type"]);
+  }
+}
+
 function createSelectors(selectorSpec) {
   const selectors = {
     selectState: selectorSpec._selector ?? R.identity,
   };
 
-  for (const [key, value] of Object.entries(selectorSpec)) {
-    if (value["_export"] !== false) {
+  for (const [propertyName, propertySelectorSpec] of Object.entries(
+    selectorSpec
+  )) {
+    if (propertySelectorSpec["_export"] !== false) {
       const selectorFunction = (_state) => {
         const state = selectors.selectState(_state);
-        if (!Object.hasOwn(state, key) && Object.hasOwn(value, "_default")) {
-          return value["_default"];
-        } else if (
-          !Object.hasOwn(state, key) &&
-          Object.hasOwn(value, "_type")
-        ) {
-          return getDefaultValueForType(value["_type"]);
-        }
-        return state[key];
+        return !Object.hasOwn(state, propertyName)
+          ? getDefaultForPropertySelector(propertySelectorSpec)
+          : state[propertyName];
       };
-      selectors[createSelectorName(key)] = selectorFunction;
+      selectors[createSelectorName(propertyName)] = selectorFunction;
     }
   }
 
