@@ -28,8 +28,8 @@ function createSelectors(selectorSpec) {
   const createdSelectors = Object.entries(selectorSpec).reduce(
     (selectors, [propertyName, propertySelectorSpec]) => {
       if (propertySelectorSpec["_export"] !== false) {
-        const selectorFunction = (_state) => {
-          const state = selectors.selectState(_state);
+        const selectorFunction = (_state, props) => {
+          const state = selectors.selectState(_state, props);
           return !Object.hasOwn(state, propertyName)
             ? getDefaultForPropertySelector(propertySelectorSpec)
             : state[propertyName];
