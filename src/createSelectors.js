@@ -13,7 +13,12 @@ function createSelectors(selectorSpec) {
 
   for (const [key, value] of Object.entries(selectorSpec)) {
     if (value["_export"] !== false) {
-      selectors[createSelectorName(key)] = (state) => state[key];
+      selectors[createSelectorName(key)] = (state) => {
+        if (!Object.hasOwn(state, key) && Object.hasOwn(value, "_default")) {
+          return value["_default"];
+        }
+        return state[key];
+      };
     }
   }
 
