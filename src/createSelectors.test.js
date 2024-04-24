@@ -166,4 +166,17 @@ describe(`create-selectors.js`, () => {
       expect(selectors.selectSimpleBoolean(restState, {})).toEqual(true);
     });
   });
+  it(`returns a default value for a simple property`, () => {
+    const selectors = createSelectors({
+      simpleString: {
+        _default: "default value",
+        _export: true,
+      },
+    });
+    // eslint-disable-next-line
+    const { simpleString, ...restState } = state;
+    expect(selectors.selectSimpleString(restState, {})).toEqual(
+      "default value"
+    );
+  });
 });
