@@ -146,5 +146,14 @@ describe(`create-selectors.js`, () => {
         state.simpleString
       );
     });
+    it(`returns a simple boolean property`, () => {
+      const selectors = createSelectors({
+        simpleBoolean: {
+          _default: true,
+        },
+      });
+      // eslint-disable-next-line
+      expect(selectors.selectSimpleBoolean(state, {})).toEqual(false);
+    });
   });
 });
