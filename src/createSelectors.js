@@ -1,6 +1,6 @@
 import R from "ramda";
 
-const reservedWords = ["_default", "_type", "_export", "_selector"];
+const RESERVED_WORDS = ["_default", "_type", "_export", "_selector"];
 
 function createSelectorName(selectorName) {
   return `select${selectorName.charAt(0).toUpperCase()}${selectorName.slice(
@@ -30,7 +30,7 @@ function createSelectors(selectorSpec) {
   };
 
   return Object.keys(selectorSpec).reduce((selectors, propertyName) => {
-    if (reservedWords.includes(propertyName)) {
+    if (RESERVED_WORDS.includes(propertyName)) {
       return selectors;
     } else if (selectorSpec[propertyName]._export !== false) {
       const selectorName = createSelectorName(propertyName);
@@ -39,7 +39,8 @@ function createSelectors(selectorSpec) {
       );
       const selector = (_state) => {
         const state = selectors.selectState(_state);
-        return Object.hasOwn(state, propertyName)
+        return Object.hasOwn(state, propertyName) &&
+          state[propertyName] !== undefined
           ? state[propertyName]
           : defaultValue;
       };
