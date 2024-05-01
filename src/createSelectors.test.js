@@ -377,6 +377,21 @@ describe(`create-selectors.js`, () => {
           // eslint-disable-next-line
           expect(selectors.selectSimpleBoolean(simpleState, {})).toEqual(false);
         });
+        it(`returns a default value for a simple boolean property`, () => {
+          const selectors = createSelectors({
+            rootOne: {
+              simpleBoolean: {
+                _default: true,
+              },
+            },
+          });
+          const simpleState = {
+            rootOne: {
+              simpleBoolean: undefined,
+            },
+          };
+          expect(selectors.selectSimpleBoolean(simpleState, {})).toEqual(true);
+        });
       });
     });
   });
