@@ -24,37 +24,58 @@ function getDefaultForPropertySelector(propertySelectorSpec) {
   }
 }
 
-function createSelectors(selectorSpec) {
+function _createSelectors(selectorSpec, prevSelectorNames) {
   const selectors = {
     selectState: selectorSpec._selector ?? R.identity,
   };
 
-  return Object.keys(selectorSpec).reduce((selectors, propertyName) => {
-    if (RESERVED_WORDS.includes(propertyName)) {
-      return selectors;
-    } else if (selectorSpec[propertyName]._export !== false) {
-      const selectorName = createSelectorName(propertyName);
-      const defaultValue = getDefaultForPropertySelector(
-        selectorSpec[propertyName]
-      );
-      const selector = (_state) => {
-        const state = selectors.selectState(_state);
-        return Object.hasOwn(state, propertyName) &&
-          state[propertyName] !== undefined
-          ? state[propertyName]
-          : defaultValue;
-      };
-      return {
-        ...selectors,
-        [selectorName]: selector,
-        ...createSelectors({
-          ...selectorSpec[propertyName],
-          _selector: selector,
-        }),
-      };
-    }
-    return selectors;
-  }, selectors);
+  return Object.entries(selectorSpec).reduce(
+    (accSelectors, [propertyName, propertySpec]) => {
+      if (RESERVED_WORDS.includes(propertyName)) {
+        return accSelectors;
+      } else if (propertySpec._export !== false) {
+        const selectorName = createSelectorName(propertyName);
+
+        if (prevSelectorNames.includes(propertyName)) {
+          throw new Error(
+            `Invariant failed: The selector names [${selectorName}] are already in use. Please use an alternative name using '_name' or '_names'`
+          );
+        }
+
+        const defaultValue = getDefaultForPropertySelector(
+          selectorSpec[propertyName]
+        );
+
+        const selector = (_state) => {
+          const state = accSelectors.selectState(_state);
+          return Object.hasOwn(state, propertyName) &&
+            state[propertyName] !== undefined
+            ? state[propertyName]
+            : defaultValue;
+        };
+
+        accSelectors[selectorName] = selector;
+        prevSelectorNames.push(propertyName);
+
+        return {
+          ...accSelectors,
+          ..._createSelectors(
+            {
+              ...propertySpec,
+              _selector: selector,
+            },
+            prevSelectorNames
+          ),
+        };
+      }
+      return accSelectors;
+    },
+    selectors
+  );
+}
+
+function createSelectors(selectorSpec) {
+  return _createSelectors(selectorSpec, []);
 }
 
 export default createSelectors;
