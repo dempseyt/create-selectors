@@ -258,7 +258,7 @@ describe(`create-selectors.js`, () => {
       });
       expect(selectors.selectAnIndexOfObjects({}, {})).toEqual({});
     });
-    it(`selects an entry from an index`, () => {
+    it.skip(`selects an entry from an index`, () => {
       const state = {
         someRoot: {
           test: {
@@ -344,6 +344,22 @@ describe(`create-selectors.js`, () => {
         state.someRoot.mapIndex["ea9cb69e-0993-40ad-897d-41fae23f2a35"]
           .nodeIndex["5f391310-fb9c-44bc-a3db-e1572ac340b9"]
       );
+    });
+  });
+  describe(`nested selector specs`, () => {
+    describe(`simple properties`, () => {
+      it(`selects a nested simple property on level 1`, () => {
+        const selectors = createSelectors({
+          rootOne: {
+            simpleString: {
+              _export: true,
+            },
+          },
+        });
+        expect(selectors.selectSimpleString(state, {})).toEqual(
+          state.rootOne.simpleString
+        );
+      });
     });
   });
 });

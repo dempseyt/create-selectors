@@ -1,5 +1,7 @@
 import R from "ramda";
 
+const reservedWords = ["_default", "_type", "_export", "_selector"];
+
 function createSelectorName(selectorName) {
   return `select${selectorName.charAt(0).toUpperCase()}${selectorName.slice(
     1
@@ -27,24 +29,31 @@ function createSelectors(selectorSpec) {
     selectState: selectorSpec._selector ?? R.identity,
   };
 
-  const createdSelectors = Object.entries(selectorSpec).reduce(
-    (selectors, [propertyName, propertySelectorSpec]) => {
-      if (propertySelectorSpec["_export"] !== false) {
-        const selectorFunction = (_state, props) => {
-          const state = selectors.selectState(_state, props);
-          return !Object.hasOwn(state, propertyName)
-            ? getDefaultForPropertySelector(propertySelectorSpec)
-            : state[propertyName];
-        };
-        return {
-          ...selectors,
-          [createSelectorName(propertyName)]: selectorFunction,
-        };
-      }
-    },
-    selectors
-  );
-  return createdSelectors;
+  return Object.keys(selectorSpec).reduce((selectors, propertyName) => {
+    if (reservedWords.includes(propertyName)) {
+      return selectors;
+    } else if (selectorSpec[propertyName]._export !== false) {
+      const selectorName = createSelectorName(propertyName);
+      const defaultValue = getDefaultForPropertySelector(
+        selectorSpec[propertyName]
+      );
+      const selector = (_state) => {
+        const state = selectors.selectState(_state);
+        return Object.hasOwn(state, propertyName)
+          ? state[propertyName]
+          : defaultValue;
+      };
+      return {
+        ...selectors,
+        [selectorName]: selector,
+        ...createSelectors({
+          ...selectorSpec[propertyName],
+          _selector: selector,
+        }),
+      };
+    }
+    return selectors;
+  }, selectors);
 }
 
 export default createSelectors;
