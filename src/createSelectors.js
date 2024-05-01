@@ -1,8 +1,15 @@
 import R from "ramda";
 
-const RESERVED_WORDS = ["_default", "_type", "_export", "_selector"];
+const RESERVED_WORDS = [
+  "_default",
+  "_type",
+  "_export",
+  "_selector",
+  "_alternative",
+];
 
 function createSelectorName(selectorName) {
+  console.log(`selectorName: ${selectorName}`);
   return `select${selectorName.charAt(0).toUpperCase()}${selectorName.slice(
     1
   )}`;
@@ -34,35 +41,39 @@ function _createSelectors(selectorSpec, prevSelectorNames) {
       if (RESERVED_WORDS.includes(propertyName)) {
         return accSelectors;
       } else if (propertySpec._export !== false) {
-        const selectorName = createSelectorName(propertyName);
-
-        if (prevSelectorNames.includes(propertyName)) {
-          throw new Error(
-            `Invariant failed: The selector names [${selectorName}] are already in use. Please use an alternative name using '_name' or '_names'`
-          );
+        let selectorName = createSelectorName(propertyName);
+        if (prevSelectorNames.includes(selectorName)) {
+          if (propertySpec._alternative !== undefined) {
+            selectorName = createSelectorName(propertySpec._alternative);
+          } else {
+            throw new Error(
+              `Invariant failed: The selector names [${selectorName}] are already in use. Please use an alternative name using '_name' or '_names'`
+            );
+          }
         }
 
         const defaultValue = getDefaultForPropertySelector(
           selectorSpec[propertyName]
         );
 
-        const selector = (_state) => {
-          const state = accSelectors.selectState(_state);
+        const selectorFunction = (_state) => {
+          const state = selectors.selectState(_state);
           return Object.hasOwn(state, propertyName) &&
             state[propertyName] !== undefined
             ? state[propertyName]
             : defaultValue;
         };
 
-        accSelectors[selectorName] = selector;
-        prevSelectorNames.push(propertyName);
+        accSelectors[selectorName] = selectorFunction;
+        prevSelectorNames.push(selectorName);
 
         return {
+          [selectorName]: selectorFunction,
           ...accSelectors,
           ..._createSelectors(
             {
               ...propertySpec,
-              _selector: selector,
+              _selector: selectorFunction,
             },
             prevSelectorNames
           ),

@@ -447,6 +447,22 @@ describe(`create-selectors.js`, () => {
           )
         );
       });
+      it(`uses an alternative key if the key is already in use`, () => {
+        const selectors = createSelectors({
+          rootOne: {
+            simpleString: {
+              _export: true,
+              _alternative: "simpleString2",
+            },
+            level2: {
+              simpleString: {},
+            },
+          },
+        });
+        expect(selectors.selectSimpleString2(state, {})).toEqual(
+          state.rootOne.level2.simpleString
+        );
+      });
     });
   });
 });
