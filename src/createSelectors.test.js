@@ -360,6 +360,24 @@ describe(`create-selectors.js`, () => {
           state.rootOne.simpleString
         );
       });
+      describe(`boolean values`, () => {
+        it(`returns a simple boolean property`, () => {
+          const selectors = createSelectors({
+            rootOne: {
+              simpleBoolean: {
+                _default: true,
+              },
+            },
+          });
+          const simpleState = {
+            rootOne: {
+              simpleBoolean: false,
+            },
+          };
+          // eslint-disable-next-line
+          expect(selectors.selectSimpleBoolean(simpleState, {})).toEqual(false);
+        });
+      });
     });
   });
 });
