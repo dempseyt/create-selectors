@@ -30,9 +30,9 @@ function _createSelectors(selectorSpec, prevSelectorNames) {
   };
 
   return Object.entries(selectorSpec).reduce(
-    (accSelectors, [propertyName, propertySpec]) => {
+    (selectors, [propertyName, propertySpec]) => {
       if (RESERVED_WORDS.includes(propertyName)) {
-        return accSelectors;
+        return selectors;
       } else if (propertySpec._export !== false) {
         const selectorName = createSelectorName(propertyName);
 
@@ -47,18 +47,18 @@ function _createSelectors(selectorSpec, prevSelectorNames) {
         );
 
         const selector = (_state) => {
-          const state = accSelectors.selectState(_state);
+          const state = selectors.selectState(_state);
           return Object.hasOwn(state, propertyName) &&
             state[propertyName] !== undefined
             ? state[propertyName]
             : defaultValue;
         };
 
-        accSelectors[selectorName] = selector;
+        selectors[selectorName] = selector;
         prevSelectorNames.push(propertyName);
 
         return {
-          ...accSelectors,
+          ...selectors,
           ..._createSelectors(
             {
               ...propertySpec,
@@ -68,7 +68,7 @@ function _createSelectors(selectorSpec, prevSelectorNames) {
           ),
         };
       }
-      return accSelectors;
+      return selectors;
     },
     selectors
   );
