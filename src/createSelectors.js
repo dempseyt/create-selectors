@@ -9,31 +9,11 @@ const RESERVED_WORDS = [
 ];
 
 const createStateSelector = (selectorSpec) => {
-  return {
-    selectState: selectorSpec._selector ?? R.identity,
-  };
+  return selectorSpec._selector ?? R.identity;
 };
 
-function createSelectorName(
-  propertyName,
-  propertySelectorSpec,
-  previousSelectorNames
-) {
-  let _createSelectorName = (propertyName) =>
-    `select${propertyName.charAt(0).toUpperCase()}${propertyName.slice(1)}`;
-
-  const selectorName = _createSelectorName(propertyName);
-
-  if (previousSelectorNames.includes(propertyName)) {
-    if (Object.hasOwn(propertySelectorSpec, "_alternative")) {
-      return _createSelectorName(propertySelectorSpec["_alternative"]);
-    }
-    throw new Error(
-      `Invariant failed: The selector names [${selectorName}] are already in use. Please use an alternative name using '_name' or '_names'`
-    );
-  }
-  return selectorName;
-}
+const createSelectorName = (propertyName) =>
+  `select${propertyName.charAt(0).toUpperCase()}${propertyName.slice(1)}`;
 
 function throwInvariantErrorMsg(selectorName) {
   throw new Error(
@@ -56,6 +36,7 @@ function getDefaultForPropertySelector(propertySelectorSpec) {
     return getDefaultValueForType(propertySelectorSpec["_type"]);
   }
 }
+
 function expandSelectors(
   selectorSpec,
   selectors = {
@@ -85,21 +66,28 @@ function expandSelectors(
         };
 
         if (Object.hasOwn(propertySpec, "_alternative")) {
-          withAlternativeName.push({
-            name: [propertyName, propertySpec._alternative],
+          selectors.withAlternativeName.push({
+            names: [propertyName, propertySpec._alternative],
             propertySelector: selector,
           });
         } else {
-          withOneName.push({
-            name: propertyName,
+          selectors.withOneName.push({
+            names: [propertyName],
             propertySelector: selector,
           });
         }
 
-        return expandSelectors({
-          ...propertySpec,
-          _selector: selector,
-        });
+        console.log(`propertySpec: ${JSON.stringify(propertySpec, null, 2)}`);
+        console.log(`selector: ${selector}`);
+        console.log("-------------------------------");
+        console.log(`selectors: ${JSON.stringify(selectors, null, 2)}`);
+        return expandSelectors(
+          {
+            ...propertySpec,
+            _selector: selector,
+          },
+          selectors
+        );
       }
       return selectors;
     },
@@ -109,20 +97,28 @@ function expandSelectors(
 
 function createSelectors(selectorSpec) {
   const selectors = { selectState: createStateSelector(selectorSpec) };
-  const selectorsWithMethodNames = expandSelectors(selectorSpec);
-
-  const reducer = (selectorsWithMethodNames, {names, propertySpec: propertySelector}) => {
-    const selectorNames = selectorsWithMethodNames.map((name) => createSelectorName(name))
+  const selectorsWithAndWithoutAlternatives = expandSelectors(selectorSpec);
+  // console.log(JSON.stringify(selectorsWithAndWithoutAlternatives, null, 2));
+  const reducer = (selectorsWithMethodNames, { names, propertySelector }) => {
+    const selectorNames = names.map((name) => createSelectorName(name));
     for (const selectorName of selectorNames) {
       if (!Object.hasOwn(selectorsWithMethodNames, selectorName)) {
-        selectorsWithMethodNames[selectorName] = propertySelector
-        return selectorsWithMethodNames
+        selectorsWithMethodNames[selectorName] = propertySelector;
+        return selectorsWithMethodNames;
       }
     }
-  }
-  throwInvariantErrorMsg(selectorNames)
+    throwInvariantErrorMsg(selectorNames);
+  };
 
-  const 
+  const uncheckedSelectorNames =
+    selectorsWithAndWithoutAlternatives.withOneName.reduce(reducer, selectors);
+
+  const checkedSelectorNames =
+    selectorsWithAndWithoutAlternatives.withAlternativeName.reduce(
+      reducer,
+      uncheckedSelectorNames
+    );
+  return checkedSelectorNames;
 }
 
 export default createSelectors;
