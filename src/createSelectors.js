@@ -6,14 +6,18 @@ const RESERVED_WORDS = [
   "_export",
   "_selector",
   "_alternative",
+  "_name",
 ];
 
 const createStateSelector = (selectorSpec) => {
   return selectorSpec._selector ?? R.identity;
 };
 
-const createSelectorName = (propertyName) =>
-  `select${propertyName.charAt(0).toUpperCase()}${propertyName.slice(1)}`;
+const createSelectorName = (propertyName) => {
+  return `select${propertyName.charAt(0).toUpperCase()}${propertyName.slice(
+    1
+  )}`;
+};
 
 function throwInvariantErrorMsg(selectorName) {
   throw new Error(
@@ -65,9 +69,15 @@ function expandSelectors(
             : defaultValue;
         };
 
-        if (Object.hasOwn(propertySpec, "_alternative")) {
+        if (Object.hasOwn(propertySpec, "_name")) {
           selectors.withAlternativeName.push({
-            names: [propertyName, propertySpec._alternative],
+            names: [propertySpec._name],
+            _nameProvided: true,
+            propertySelector: selector,
+          });
+        } else if (Object.hasOwn(propertySpec, "_alternative")) {
+          selectors.withAlternativeName.push({
+            names: [propertySpec._alternative],
             propertySelector: selector,
           });
         } else {
@@ -76,6 +86,7 @@ function expandSelectors(
             propertySelector: selector,
           });
         }
+        console.log(selectors.withAlternativeName);
 
         return expandSelectors(
           {
@@ -94,8 +105,16 @@ function expandSelectors(
 function createSelectors(selectorSpec) {
   const selectors = { selectState: createStateSelector(selectorSpec) };
   const selectorsWithAndWithoutAlternatives = expandSelectors(selectorSpec);
-  const reducer = (selectorsWithMethodNames, { names, propertySelector }) => {
-    const selectorNames = names.map((name) => createSelectorName(name));
+  const reducer = (
+    selectorsWithMethodNames,
+    { names, _nameProvided, propertySelector }
+  ) => {
+    const selectorNames = names.map((name) => {
+      if (_nameProvided) {
+        return name;
+      }
+      return createSelectorName(name);
+    });
     for (const selectorName of selectorNames) {
       if (!Object.hasOwn(selectorsWithMethodNames, selectorName)) {
         selectorsWithMethodNames[selectorName] = propertySelector;
