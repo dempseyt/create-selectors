@@ -1,11 +1,11 @@
 import * as R from "ramda";
 
-const RESERVED_WORDS = ["_selector"];
+const RESERVED_WORDS = ["_selector", "_export", "_default"];
 
 function stateSelector(selectorSpecification) {
   return {
     selectState: Object.hasOwn(selectorSpecification, "_selector")
-      ? selectorSpecification._selector
+      ? selectorSpecification["_selector"]
       : R.identity,
   };
 }
@@ -22,11 +22,14 @@ function getDefaultValue(propertySpec) {
   }
 }
 
-function createSelectors(selectorSpecification) {
+function selectorReducer(selectorSpecification) {
   const selectors = stateSelector(selectorSpecification);
-
   Object.entries(selectorSpecification).reduce(
     (accumulatedSelectors, [propertyName, propertySpec]) => {
+      if (RESERVED_WORDS.includes(propertyName)) {
+        return accumulatedSelectors;
+      }
+
       const selectorFunction = (_state) => {
         const state = selectors.selectState(_state);
         return Object.hasOwn(state, propertyName) &&
@@ -37,13 +40,15 @@ function createSelectors(selectorSpecification) {
 
       const selectorName = createSelectorName(propertyName);
       accumulatedSelectors[selectorName] = selectorFunction;
+      return selectors;
     },
     selectors
   );
+  return selectors;
+}
 
-  // console.log(`selectors: ${JSON.stringify(selectors)}`);
-  // console.log(`selectorSpec: ${JSON.stringify(selectorSpecification)}`);
-
+function createSelectors(selectorSpecification) {
+  const selectors = selectorReducer(selectorSpecification);
   return selectors;
 }
 
