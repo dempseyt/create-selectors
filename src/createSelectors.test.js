@@ -531,7 +531,7 @@ describe(`create-selectors.js`, () => {
         } catch (err) {
           expect(err).toEqual(
             Error(
-              "Invariant failed: You cannot not use _name (selectSimpleString2) and _names (selectSimpleString2,$$selectSimpleString2) at the same time."
+              "Invariant failed: You cannot use _name (selectSimpleString2) and _names (selectSimpleString2,$$selectSimpleString2) at the same time."
             )
           );
         }
