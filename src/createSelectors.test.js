@@ -212,7 +212,7 @@ describe(`create-selectors.js`, () => {
       const { aListOfStrings, ...restState } = state;
       expect(selectors.selectAListOfStrings(restState, {})).toEqual([]);
     });
-    it.skip(`returns the default list when the selected list does not exist`, () => {
+    it(`returns the default list when the selected list does not exist`, () => {
       const selectors = createSelectors({
         aListOfStrings: {
           _type: "list",
