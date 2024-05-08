@@ -8,6 +8,7 @@ const RESERVED_WORDS = [
   "_alternative",
   "_name",
   "_names",
+  "_key",
 ];
 
 const createStateSelector = (selectorSpec) => {
@@ -60,8 +61,14 @@ function expandSelectors(
           selectorSpec[propertyName]
         );
 
-        const selector = (_state) => {
-          const state = selectState(_state);
+        const selectorFunction = (_state, props) => {
+          const state = selectState(_state, props);
+
+          if (Object.hasOwn(propertySpec, "_key")) {
+            const key = propertySpec["_key"];
+            const indexKey = props[key];
+            return state[indexKey];
+          }
 
           return state[propertyName] !== undefined &&
             Object.hasOwn(state, propertyName) &&
@@ -69,6 +76,7 @@ function expandSelectors(
             ? state[propertyName]
             : defaultValue;
         };
+
         if (
           Object.hasOwn(propertySpec, "_name") &&
           Object.hasOwn(propertySpec, "_names")
@@ -82,31 +90,31 @@ function expandSelectors(
             selectors.withOneName.push({
               names: [name],
               _nameProvided: true,
-              propertySelector: selector,
+              propertySelector: selectorFunction,
             });
           });
         } else if (Object.hasOwn(propertySpec, "_name")) {
           selectors.withOneName.push({
             names: [propertySpec._name],
             _nameProvided: true,
-            propertySelector: selector,
+            propertySelector: selectorFunction,
           });
         } else if (Object.hasOwn(propertySpec, "_alternative")) {
           selectors.withAlternativeName.push({
             names: [propertySpec._alternative],
-            propertySelector: selector,
+            propertySelector: selectorFunction,
           });
         } else {
           selectors.withOneName.push({
             names: [propertyName],
-            propertySelector: selector,
+            propertySelector: selectorFunction,
           });
         }
 
         return expandSelectors(
           {
             ...propertySpec,
-            _selector: selector,
+            _selector: selectorFunction,
           },
           selectors
         );
