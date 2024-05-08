@@ -201,7 +201,7 @@ describe(`create-selectors.js`, () => {
         state.aListOfStrings
       );
     });
-    it.skip(`returns an empty list when the selected list does not exist`, () => {
+    it(`returns an empty list when the selected list does not exist`, () => {
       const selectors = createSelectors({
         aListOfStrings: {
           _type: "list",
