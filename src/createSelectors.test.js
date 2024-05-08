@@ -191,7 +191,7 @@ describe(`create-selectors.js`, () => {
     });
   });
   describe(`list selection`, () => {
-    it.skip(`creates a selector for a simple list property`, () => {
+    it(`creates a selector for a simple list property`, () => {
       const selectors = createSelectors({
         aListOfStrings: {
           _export: true,
