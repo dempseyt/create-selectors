@@ -165,7 +165,7 @@ describe(`create-selectors.js`, () => {
       const { simpleBoolean, ...restState } = state;
       expect(selectors.selectSimpleBoolean(restState, {})).toEqual(true);
     });
-    it.skip(`returns a default value for a simple property`, () => {
+    it(`returns a default value for a simple property`, () => {
       const selectors = createSelectors({
         simpleString: {
           _default: "default value",
