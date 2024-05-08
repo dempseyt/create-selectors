@@ -1,92 +1,42 @@
-import R from "ramda";
+import * as R from "ramda";
 
-const RESERVED_WORDS = [
-  "_default",
-  "_type",
-  "_export",
-  "_selector",
-  "_alternative",
-];
+const RESERVED_WORDS = ["_selector"];
 
-function createSelectorName(selectorName) {
-  console.log(`selectorName: ${selectorName}`);
-  return `select${selectorName.charAt(0).toUpperCase()}${selectorName.slice(
+function stateSelector(selectorSpecification) {
+  return {
+    selectState: Object.hasOwn(selectorSpecification, "_selector")
+      ? selectorSpecification._selector
+      : R.identity,
+  };
+}
+
+function createSelectorName(propertyName) {
+  return `select${propertyName.charAt(0).toUpperCase()}${propertyName.slice(
     1
   )}`;
 }
 
-function getDefaultValueForType(type) {
-  if (type === "list") {
-    return [];
-  } else if (type === "index") {
-    return {};
-  }
-}
+function createSelectors(selectorSpecification) {
+  const selectors = stateSelector(selectorSpecification);
 
-function getDefaultForPropertySelector(propertySelectorSpec) {
-  if (Object.hasOwn(propertySelectorSpec, "_default")) {
-    return propertySelectorSpec["_default"];
-  } else if (Object.hasOwn(propertySelectorSpec, "_type")) {
-    return getDefaultValueForType(propertySelectorSpec["_type"]);
-  }
-}
-
-function _createSelectors(selectorSpec, prevSelectorNames) {
-  const selectors = {
-    selectState: selectorSpec._selector ?? R.identity,
-  };
-
-  return Object.entries(selectorSpec).reduce(
-    (accSelectors, [propertyName, propertySpec]) => {
-      if (RESERVED_WORDS.includes(propertyName)) {
-        return accSelectors;
-      } else if (propertySpec._export !== false) {
-        let selectorName = createSelectorName(propertyName);
-        if (prevSelectorNames.includes(selectorName)) {
-          if (propertySpec._alternative !== undefined) {
-            selectorName = createSelectorName(propertySpec._alternative);
-          } else {
-            throw new Error(
-              `Invariant failed: The selector names [${selectorName}] are already in use. Please use an alternative name using '_name' or '_names'`
-            );
-          }
-        }
-
-        const defaultValue = getDefaultForPropertySelector(
-          selectorSpec[propertyName]
-        );
-
-        const selectorFunction = (_state) => {
-          const state = selectors.selectState(_state);
-          return Object.hasOwn(state, propertyName) &&
-            state[propertyName] !== undefined
-            ? state[propertyName]
-            : defaultValue;
-        };
-
-        accSelectors[selectorName] = selectorFunction;
-        prevSelectorNames.push(selectorName);
-
-        return {
-          [selectorName]: selectorFunction,
-          ...accSelectors,
-          ..._createSelectors(
-            {
-              ...propertySpec,
-              _selector: selectorFunction,
-            },
-            prevSelectorNames
-          ),
-        };
+  Object.entries(selectorSpecification).reduce(
+    (accumulatedSelectors, [propertyName, propertySpec]) => {
+      const selectorFunction = (state) => {
+        return state.propertyName;
+      };
+      if (Object.hasOwn(propertySpec, "_export")) {
+        const selectorName = createSelectorName(propertyName);
+        accumulatedSelectors[selectorName] = selectorFunction;
+        console.log(accumulatedSelectors);
       }
-      return accSelectors;
     },
     selectors
   );
-}
 
-function createSelectors(selectorSpec) {
-  return _createSelectors(selectorSpec, []);
+  // console.log(`selectors: ${JSON.stringify(selectors)}`);
+  // console.log(`selectorSpec: ${JSON.stringify(selectorSpecification)}`);
+
+  return selectors;
 }
 
 export default createSelectors;
