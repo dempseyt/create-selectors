@@ -20,7 +20,11 @@ function getDefaultValue(propertySpec) {
   if (Object.hasOwn(propertySpec, "_default")) {
     return propertySpec["_default"];
   } else if (Object.hasOwn(propertySpec, "_type")) {
-    return [];
+    if (propertySpec["_type"] === "list") {
+      return [];
+    } else if (propertySpec["_type"] === "index") {
+      return {};
+    }
   }
 }
 
