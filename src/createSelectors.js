@@ -77,10 +77,6 @@ function expandSelectors(
           });
         }
 
-        console.log(`propertySpec: ${JSON.stringify(propertySpec, null, 2)}`);
-        console.log(`selector: ${selector}`);
-        console.log("-------------------------------");
-        console.log(`selectors: ${JSON.stringify(selectors, null, 2)}`);
         return expandSelectors(
           {
             ...propertySpec,
@@ -98,7 +94,6 @@ function expandSelectors(
 function createSelectors(selectorSpec) {
   const selectors = { selectState: createStateSelector(selectorSpec) };
   const selectorsWithAndWithoutAlternatives = expandSelectors(selectorSpec);
-  // console.log(JSON.stringify(selectorsWithAndWithoutAlternatives, null, 2));
   const reducer = (selectorsWithMethodNames, { names, propertySelector }) => {
     const selectorNames = names.map((name) => createSelectorName(name));
     for (const selectorName of selectorNames) {
