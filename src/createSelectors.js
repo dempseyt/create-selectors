@@ -1,6 +1,6 @@
 import * as R from "ramda";
 
-const RESERVED_WORDS = ["_selector", "_export", "_default"];
+const RESERVED_WORDS = ["_selector", "_export", "_default", "_type"];
 
 function stateSelector(selectorSpecification) {
   return {
@@ -19,6 +19,8 @@ function createSelectorName(propertyName) {
 function getDefaultValue(propertySpec) {
   if (Object.hasOwn(propertySpec, "_default")) {
     return propertySpec["_default"];
+  } else if (Object.hasOwn(propertySpec, "_type")) {
+    return [];
   }
 }
 
