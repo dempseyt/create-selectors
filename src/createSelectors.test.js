@@ -226,7 +226,7 @@ describe(`create-selectors.js`, () => {
         "default value",
       ]);
     });
-    it.skip(`creates a selector for a list property wit.skiph a different root`, () => {
+    it(`creates a selector for a list property with a different root`, () => {
       const selectors = createSelectors({
         _selector: (state, props) => state && state.rootOne,
         aListOfStrings: {
