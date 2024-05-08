@@ -239,7 +239,7 @@ describe(`create-selectors.js`, () => {
     });
   });
   describe(`index selection`, () => {
-    it.skip(`creates a selector for a simple index property`, () => {
+    it(`creates a selector for a simple index property`, () => {
       const selectors = createSelectors({
         anIndexOfObjects: {
           _export: true,
