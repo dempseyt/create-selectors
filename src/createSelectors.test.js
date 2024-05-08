@@ -178,7 +178,7 @@ describe(`create-selectors.js`, () => {
         "default value"
       );
     });
-    it.skip(`creates a selector for a simple property wit.skiph a different root`, () => {
+    it(`creates a selector for a simple property with a different root`, () => {
       const selectors = createSelectors({
         _selector: (state, props) => state && state.rootOne,
         simpleString: {
