@@ -155,7 +155,7 @@ describe(`create-selectors.js`, () => {
       // eslint-disable-next-line
       expect(selectors.selectSimpleBoolean(state, {})).toEqual(false);
     });
-    it.skip(`returns a default value for a simple boolean property`, () => {
+    it(`returns a default value for a simple boolean property`, () => {
       const selectors = createSelectors({
         simpleBoolean: {
           _default: true,
