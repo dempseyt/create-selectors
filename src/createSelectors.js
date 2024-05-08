@@ -28,11 +28,10 @@ function createSelectors(selectorSpecification) {
           ? state[propertyName]
           : {};
       };
-      if (Object.hasOwn(propertySpec, "_export")) {
-        const selectorName = createSelectorName(propertyName);
-        accumulatedSelectors[selectorName] = selectorFunction;
-        console.log(accumulatedSelectors);
-      }
+
+      const selectorName = createSelectorName(propertyName);
+      accumulatedSelectors[selectorName] = selectorFunction;
+      console.log(accumulatedSelectors);
     },
     selectors
   );
