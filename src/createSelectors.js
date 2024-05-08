@@ -16,6 +16,12 @@ function createSelectorName(propertyName) {
   )}`;
 }
 
+function getDefaultValue(propertySpec) {
+  if (Object.hasOwn(propertySpec, "_default")) {
+    return propertySpec["_default"];
+  }
+}
+
 function createSelectors(selectorSpecification) {
   const selectors = stateSelector(selectorSpecification);
 
@@ -26,12 +32,11 @@ function createSelectors(selectorSpecification) {
         return Object.hasOwn(state, propertyName) &&
           state[propertyName] !== undefined
           ? state[propertyName]
-          : {};
+          : getDefaultValue(propertySpec);
       };
 
       const selectorName = createSelectorName(propertyName);
       accumulatedSelectors[selectorName] = selectorFunction;
-      console.log(accumulatedSelectors);
     },
     selectors
   );
