@@ -21,8 +21,12 @@ function createSelectors(selectorSpecification) {
 
   Object.entries(selectorSpecification).reduce(
     (accumulatedSelectors, [propertyName, propertySpec]) => {
-      const selectorFunction = (state) => {
-        return state.propertyName;
+      const selectorFunction = (_state) => {
+        const state = selectors.selectState(_state);
+        return Object.hasOwn(state, propertyName) &&
+          state[propertyName] !== undefined
+          ? state[propertyName]
+          : {};
       };
       if (Object.hasOwn(propertySpec, "_export")) {
         const selectorName = createSelectorName(propertyName);

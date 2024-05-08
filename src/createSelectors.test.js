@@ -146,7 +146,7 @@ describe(`create-selectors.js`, () => {
         state.simpleString
       );
     });
-    it.skip(`returns a simple boolean property`, () => {
+    it(`returns a simple boolean property`, () => {
       const selectors = createSelectors({
         simpleBoolean: {
           _default: true,
