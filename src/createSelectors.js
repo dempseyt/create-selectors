@@ -7,6 +7,7 @@ const RESERVED_WORDS = [
   "_selector",
   "_alternative",
   "_name",
+  "_names",
 ];
 
 const createStateSelector = (selectorSpec) => {
@@ -69,8 +70,16 @@ function expandSelectors(
             : defaultValue;
         };
 
-        if (Object.hasOwn(propertySpec, "_name")) {
-          selectors.withAlternativeName.push({
+        if (Object.hasOwn(propertySpec, "_names")) {
+          propertySpec["_names"].map((name) => {
+            selectors.withOneName.push({
+              names: [name],
+              _nameProvided: true,
+              propertySelector: selector,
+            });
+          });
+        } else if (Object.hasOwn(propertySpec, "_name")) {
+          selectors.withOneName.push({
             names: [propertySpec._name],
             _nameProvided: true,
             propertySelector: selector,
@@ -86,7 +95,6 @@ function expandSelectors(
             propertySelector: selector,
           });
         }
-        console.log(selectors.withAlternativeName);
 
         return expandSelectors(
           {
@@ -105,7 +113,7 @@ function expandSelectors(
 function createSelectors(selectorSpec) {
   const selectors = { selectState: createStateSelector(selectorSpec) };
   const selectorsWithAndWithoutAlternatives = expandSelectors(selectorSpec);
-  const reducer = (
+  const createSelector = (
     selectorsWithMethodNames,
     { names, _nameProvided, propertySelector }
   ) => {
@@ -125,11 +133,14 @@ function createSelectors(selectorSpec) {
   };
 
   const uncheckedSelectorNames =
-    selectorsWithAndWithoutAlternatives.withOneName.reduce(reducer, selectors);
+    selectorsWithAndWithoutAlternatives.withOneName.reduce(
+      createSelector,
+      selectors
+    );
 
   const checkedSelectorNames =
     selectorsWithAndWithoutAlternatives.withAlternativeName.reduce(
-      reducer,
+      createSelector,
       uncheckedSelectorNames
     );
   return checkedSelectorNames;
