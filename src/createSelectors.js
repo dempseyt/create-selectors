@@ -9,6 +9,7 @@ const RESERVED_WORDS = [
   "_name",
   "_names",
   "_key",
+  "_func",
 ];
 
 const createStateSelector = (selectorSpec) => {
@@ -68,6 +69,10 @@ function expandSelectors(
             const key = propertySpec["_key"];
             const indexKey = props[key];
             return state[indexKey];
+          }
+
+          if (Object.hasOwn(propertySpec, "_func")) {
+            return propertySpec["_func"](state);
           }
 
           return state[propertyName] !== undefined &&
