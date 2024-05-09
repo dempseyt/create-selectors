@@ -1,4 +1,5 @@
 import createSelectors from "./createSelectors";
+import * as R from "ramda";
 
 const state = {
   mapIndex: {
@@ -539,7 +540,7 @@ describe(`create-selectors.js`, () => {
     });
   });
   describe(`providing your own return function`, () => {
-    it.skip(`calls a provided return function`, () => {
+    it(`calls a provided return function`, () => {
       const state = {
         mapIndex: {
           "5ae40702-2d64-4ab6-b755-646bcf79a286": {
@@ -570,7 +571,7 @@ describe(`create-selectors.js`, () => {
             names: {
               _type: "list",
               _export: true,
-              _func: map(({ name } = {}) => name),
+              _func: R.map(({ name } = {}) => name),
             },
           },
           keys: {
