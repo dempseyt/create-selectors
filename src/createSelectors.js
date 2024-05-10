@@ -73,15 +73,20 @@ function expandSelectors(
           }
 
           if (Object.hasOwn(propertySpec, "_func")) {
-            let args = [];
+            let propArgs = [];
             if (Object.hasOwn(propertySpec, "_propsKeys")) {
-              args = propertySpec._propsKeys.reduce((args, currentKey) => {
+              propArgs = propertySpec._propsKeys.reduce((args, currentKey) => {
                 args.push(props[currentKey]);
+                return args;
+              }, []);
+            } else if (Object.hasOwn(propertySpec, "_selectors")) {
+              propArgs = propertySpec._selectors.reduce((args, selector) => {
+                args.push(selector(state, props));
                 return args;
               }, []);
             }
 
-            return propertySpec["_func"](state, ...args);
+            return propertySpec["_func"](state, ...propArgs);
           }
 
           return state[propertyName] !== undefined &&
