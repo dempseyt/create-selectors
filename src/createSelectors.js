@@ -1,4 +1,4 @@
-import R, { prop } from "ramda";
+import R, { length, prop } from "ramda";
 
 const RESERVED_WORDS = [
   "_default",
@@ -10,6 +10,7 @@ const RESERVED_WORDS = [
   "_names",
   "_key",
   "_func",
+  "_propsKeys",
 ];
 
 const createStateSelector = (selectorSpec) => {
@@ -72,7 +73,15 @@ function expandSelectors(
           }
 
           if (Object.hasOwn(propertySpec, "_func")) {
-            return propertySpec["_func"](state);
+            let args = [];
+            if (Object.hasOwn(propertySpec, "_propsKeys")) {
+              args = propertySpec._propsKeys.reduce((args, currentKey) => {
+                args.push(props[currentKey]);
+                return args;
+              }, []);
+            }
+
+            return propertySpec["_func"](state, ...args);
           }
 
           return state[propertyName] !== undefined &&
