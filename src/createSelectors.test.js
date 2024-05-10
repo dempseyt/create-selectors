@@ -646,4 +646,48 @@ describe(`create-selectors.js`, () => {
       ).toEqual([]);
     });
   });
+  describe(`providing additional selector functions`, () => {
+    const createSelectFromProps =
+      (key) =>
+      (state, { [key]: value } = {}) =>
+        value;
+    it(`executes  additional selector functions and passes the result on to a provided function`, () => {
+      const state = {
+        mapIndex: {
+          "5ae40702-2d64-4ab6-b755-646bcf79a286": {
+            uuid: "5ae40702-2d64-4ab6-b755-646bcf79a286",
+            name: "one",
+          },
+          "ea9cb69e-0993-40ad-897d-41fae23f2a35": {
+            uuid: "ea9cb69e-0993-40ad-897d-41fae23f2a35",
+            name: "two",
+          },
+        },
+      };
+      const selectors = createSelectors({
+        // _export: true,
+        mapIndex: {
+          _type: "index",
+          _export: true,
+          maps: {
+            _type: "list",
+            _export: true,
+            // apply this function to the result of the root selector
+            _func: Object.values,
+            mapByName: {
+              _export: true,
+              _selectors: [createSelectFromProps("name")],
+              _func: (maps, name) => maps.find((map) => map.name === name),
+            },
+          },
+        },
+      });
+      expect(selectors.selectMaps(state)).toEqual(
+        Object.values(state.mapIndex)
+      );
+      expect(selectors.selectMapByName(state, { name: "one" })).toEqual(
+        state.mapIndex["5ae40702-2d64-4ab6-b755-646bcf79a286"]
+      );
+    });
+  });
 });
