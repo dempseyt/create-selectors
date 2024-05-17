@@ -45,97 +45,118 @@ function getDefaultForPropertySelector(propertySelectorSpec) {
   }
 }
 
+const createRootStateAwareSelector = (
+  outerStateSelector,
+  outerStateAwareSelector
+) => {
+  return (rootState, props) => {
+    const outerState = outerStateSelector(rootState, props);
+    return outerStateAwareSelector(outerState, props);
+  };
+};
+
+function createSelectorFunction(
+  propertyName,
+  selectorSpecification,
+  outerStateSelector
+) {
+  const defaultValue = getDefaultForPropertySelector(selectorSpecification);
+  const outerStateAwareSelector = (outerState, props) => {
+    if (Object.hasOwn(selectorSpecification, "_key")) {
+      const key = selectorSpecification["_key"];
+      const indexKey = props[key];
+      return outerState[indexKey];
+    }
+
+    if (Object.hasOwn(selectorSpecification, "_func")) {
+      let propArgs = [];
+      if (Object.hasOwn(selectorSpecification, "_propsKeys")) {
+        propArgs = selectorSpecification._propsKeys.reduce(
+          (args, currentKey) => {
+            args.push(props[currentKey]);
+            return args;
+          },
+          []
+        );
+      } else if (Object.hasOwn(selectorSpecification, "_selectors")) {
+        propArgs = selectorSpecification._selectors.reduce((args, selector) => {
+          args.push(selector(outerState, props));
+          return args;
+        }, []);
+      }
+
+      return selectorSpecification["_func"](outerState, ...propArgs);
+    }
+
+    return outerState[propertyName] !== undefined &&
+      Object.hasOwn(outerState, propertyName) &&
+      outerState[propertyName] !== undefined
+      ? outerState[propertyName]
+      : defaultValue;
+  };
+  return createRootStateAwareSelector(
+    outerStateSelector,
+    outerStateAwareSelector
+  );
+}
+
 function expandSelectors(
-  selectorSpec,
+  selectorSpecifications,
   selectors = {
     withOneName: [],
     withAlternativeName: [],
-  }
+  },
+  parentSelector
 ) {
-  const selectState = createStateSelector(selectorSpec);
-
-  return Object.entries(selectorSpec).reduce(
-    (selectors, [propertyName, propertySpec]) => {
+  return Object.entries(selectorSpecifications).reduce(
+    (selectors, [propertyName, selectorSpecification]) => {
       if (RESERVED_WORDS.includes(propertyName)) {
         return selectors;
-      } else if (propertySpec._export !== false) {
-        const defaultValue = getDefaultForPropertySelector(
-          selectorSpec[propertyName]
+      } else if (selectorSpecification._export !== false) {
+        const currentSelector = createSelectorFunction(
+          propertyName,
+          selectorSpecification,
+          parentSelector
         );
 
-        const selectorFunction = (_state, props) => {
-          const state = selectState(_state, props);
-
-          if (Object.hasOwn(propertySpec, "_key")) {
-            const key = propertySpec["_key"];
-            const indexKey = props[key];
-            return state[indexKey];
-          }
-
-          if (Object.hasOwn(propertySpec, "_func")) {
-            let propArgs = [];
-            if (Object.hasOwn(propertySpec, "_propsKeys")) {
-              propArgs = propertySpec._propsKeys.reduce((args, currentKey) => {
-                args.push(props[currentKey]);
-                return args;
-              }, []);
-            } else if (Object.hasOwn(propertySpec, "_selectors")) {
-              propArgs = propertySpec._selectors.reduce((args, selector) => {
-                args.push(selector(state, props));
-                return args;
-              }, []);
-            }
-
-            return propertySpec["_func"](state, ...propArgs);
-          }
-
-          return state[propertyName] !== undefined &&
-            Object.hasOwn(state, propertyName) &&
-            state[propertyName] !== undefined
-            ? state[propertyName]
-            : defaultValue;
-        };
-
         if (
-          Object.hasOwn(propertySpec, "_name") &&
-          Object.hasOwn(propertySpec, "_names")
+          Object.hasOwn(selectorSpecification, "_name") &&
+          Object.hasOwn(selectorSpecification, "_names")
         ) {
           throw new Error(
-            `Invariant failed: You cannot use _name (${propertySpec["_name"]}) and _names (${propertySpec["_names"]}) at the same time.`
+            `Invariant failed: You cannot use _name (${selectorSpecification["_name"]}) and _names (${selectorSpecification["_names"]}) at the same time.`
           );
         }
-        if (Object.hasOwn(propertySpec, "_names")) {
-          propertySpec["_names"].map((name) => {
+        if (Object.hasOwn(selectorSpecification, "_names")) {
+          selectorSpecification["_names"].map((name) => {
             selectors.withOneName.push({
               names: [name],
               _nameProvided: true,
-              propertySelector: selectorFunction,
+              propertySelector: currentSelector,
             });
           });
-        } else if (Object.hasOwn(propertySpec, "_name")) {
+        } else if (Object.hasOwn(selectorSpecification, "_name")) {
           selectors.withOneName.push({
-            names: [propertySpec._name],
+            names: [selectorSpecification._name],
             _nameProvided: true,
-            propertySelector: selectorFunction,
+            propertySelector: currentSelector,
           });
-        } else if (Object.hasOwn(propertySpec, "_alternative")) {
+        } else if (Object.hasOwn(selectorSpecification, "_alternative")) {
           selectors.withAlternativeName.push({
-            names: [propertySpec._alternative],
-            propertySelector: selectorFunction,
+            names: [selectorSpecification._alternative],
+            propertySelector: currentSelector,
           });
         } else {
           selectors.withOneName.push({
             names: [propertyName],
-            propertySelector: selectorFunction,
+            propertySelector: currentSelector,
           });
         }
 
         return expandSelectors(
-          {
-            ...propertySpec,
-            _selector: selectorFunction,
-          },
-          selectors
+          selectorSpecification,
+          selectors,
+          currentSelector
         );
       }
       return selectors;
@@ -144,9 +165,16 @@ function expandSelectors(
   );
 }
 
-function createSelectors(selectorSpec) {
-  const selectors = { selectState: createStateSelector(selectorSpec) };
-  const selectorsWithAndWithoutAlternatives = expandSelectors(selectorSpec);
+function createSelectors(selectorSpecifications) {
+  const rootStateSelector = createStateSelector(selectorSpecifications);
+  const selectors = {
+    selectState: rootStateSelector,
+  };
+  const selectorsWithAndWithoutAlternatives = expandSelectors(
+    selectorSpecifications,
+    undefined,
+    rootStateSelector
+  );
   const createSelector = (
     selectorsWithMethodNames,
     { names, _nameProvided, propertySelector }
