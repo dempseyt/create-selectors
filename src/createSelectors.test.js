@@ -1,4 +1,5 @@
 import createSelectors from "./createSelectors";
+import * as R from "ramda";
 
 const state = {
   mapIndex: {
@@ -258,7 +259,7 @@ describe(`create-selectors.js`, () => {
       });
       expect(selectors.selectAnIndexOfObjects({}, {})).toEqual({});
     });
-    it.skip(`selects an entry from an index`, () => {
+    it(`selects an entry from an index`, () => {
       const state = {
         someRoot: {
           test: {
@@ -450,18 +451,308 @@ describe(`create-selectors.js`, () => {
       it(`uses an alternative key if the key is already in use`, () => {
         const selectors = createSelectors({
           rootOne: {
-            simpleString: {
-              _export: true,
-              _alternative: "simpleString2",
-            },
+            simpleString: {},
             level2: {
-              simpleString: {},
+              simpleString: {
+                _export: true,
+                _alternative: "simpleString2",
+              },
             },
           },
         });
         expect(selectors.selectSimpleString2(state, {})).toEqual(
           state.rootOne.level2.simpleString
         );
+      });
+      it(`does not prefix the alternative name with 'select' if '_name'`, () => {
+        const selectors = createSelectors({
+          rootOne: {
+            simpleString: {},
+            level2: {
+              simpleString: {
+                _export: true,
+                _name: "selectSimpleString2",
+              },
+            },
+          },
+        });
+        expect(selectors.selectSimpleString2(state, {})).toEqual(
+          state.rootOne.level2.simpleString
+        );
+      });
+      it(`uses '_name' over '_alternative'`, () => {
+        const selectors = createSelectors({
+          rootOne: {
+            simpleString: {},
+            level2: {
+              simpleString: {
+                _export: true,
+                _alternative: "dontUseMe",
+                _name: "selectSimpleString2",
+              },
+            },
+          },
+        });
+        expect(selectors.selectSimpleString2(state, {})).toEqual(
+          state.rootOne.level2.simpleString
+        );
+      });
+      it(`permits definition of multiple names via '_names'`, () => {
+        const selectors = createSelectors({
+          rootOne: {
+            simpleString: {},
+            level2: {
+              simpleString: {
+                _names: ["selectSimpleString2", "$$selectSimpleString2"],
+              },
+            },
+          },
+        });
+        expect(selectors.selectSimpleString2(state, {})).toEqual(
+          state.rootOne.level2.simpleString
+        );
+        expect(selectors.$$selectSimpleString2(state, {})).toEqual(
+          state.rootOne.level2.simpleString
+        );
+      });
+      it(`does not permit use '_names' and '_name' at the same time`, () => {
+        try {
+          createSelectors({
+            rootOne: {
+              simpleString: {},
+              level2: {
+                simpleString: {
+                  _name: "selectSimpleString2",
+                  _names: ["selectSimpleString2", "$$selectSimpleString2"],
+                },
+              },
+            },
+          });
+          fail("Must throw exception");
+        } catch (err) {
+          expect(err).toEqual(
+            Error(
+              "Invariant failed: You cannot use _name (selectSimpleString2) and _names (selectSimpleString2,$$selectSimpleString2) at the same time."
+            )
+          );
+        }
+      });
+    });
+  });
+  describe(`providing your own return function`, () => {
+    it(`calls a provided return function`, () => {
+      const state = {
+        mapIndex: {
+          "5ae40702-2d64-4ab6-b755-646bcf79a286": {
+            uuid: "5ae40702-2d64-4ab6-b755-646bcf79a286",
+            name: "one",
+          },
+          "ea9cb69e-0993-40ad-897d-41fae23f2a35": {
+            uuid: "ea9cb69e-0993-40ad-897d-41fae23f2a35",
+            name: "two",
+          },
+        },
+      };
+      const selectors = createSelectors({
+        // _export: true,
+        mapIndex: {
+          _type: "index",
+          _export: true,
+          map: {
+            _export: true,
+            // lookup the key in the props instead of using 'map'
+            _key: "mapUuid",
+          },
+          maps: {
+            _type: "list",
+            _export: true,
+            // apply this function to the result of the root selector
+            _func: Object.values,
+            names: {
+              _type: "list",
+              _export: true,
+              _func: R.map(({ name } = {}) => name),
+            },
+          },
+          keys: {
+            _type: "list",
+            _export: true,
+            _func: Object.keys,
+          },
+        },
+      });
+      expect(selectors.selectState(state, {})).toEqual(state);
+      expect(selectors.selectMapIndex(state, {})).toEqual(state.mapIndex);
+      expect(selectors.selectMaps(state)).toEqual(
+        Object.values(state.mapIndex)
+      );
+      expect(selectors.selectKeys(state)).toEqual(Object.keys(state.mapIndex));
+      expect(selectors.selectNames(state)).toEqual(["one", "two"]);
+    });
+    it(`calls a provided return function with additional values from the props`, () => {
+      const state = {
+        mapIndex: {
+          "5ae40702-2d64-4ab6-b755-646bcf79a286": {
+            uuid: "5ae40702-2d64-4ab6-b755-646bcf79a286",
+            name: "one",
+            deletable: false,
+          },
+          "ea9cb69e-0993-40ad-897d-41fae23f2a35": {
+            uuid: "ea9cb69e-0993-40ad-897d-41fae23f2a35",
+            name: "two",
+            deletable: true,
+          },
+        },
+      };
+      const selectors = createSelectors({
+        // _export: true,
+        mapIndex: {
+          _type: "index",
+          _export: true,
+          maps: {
+            _type: "list",
+            _export: true,
+            // apply this function to the result of the root selector
+            _func: Object.values,
+            mapsByNameAndDeleteFlag: {
+              _type: "list",
+              _export: true,
+              _propsKeys: ["name", "deletable"],
+              _func: (maps, name, deletable) => {
+                return maps.filter(
+                  (map) => map.name === name && map.deletable === deletable
+                );
+              },
+            },
+          },
+        },
+      });
+      expect(selectors.selectState(state, {})).toEqual(state);
+      expect(selectors.selectMapIndex(state, {})).toEqual(state.mapIndex);
+      expect(selectors.selectMaps(state)).toEqual(
+        Object.values(state.mapIndex)
+      );
+      expect(
+        selectors.selectMapsByNameAndDeleteFlag(state, {
+          name: "one",
+          deletable: false,
+        })
+      ).toEqual([state.mapIndex["5ae40702-2d64-4ab6-b755-646bcf79a286"]]);
+      expect(
+        selectors.selectMapsByNameAndDeleteFlag(state, {
+          name: "one",
+          deletable: true,
+        })
+      ).toEqual([]);
+    });
+  });
+  describe(`providing additional selector functions`, () => {
+    const createSelectFromProps =
+      (key) =>
+      (state, { [key]: value } = {}) =>
+        value;
+    it(`executes  additional selector functions and passes the result on to a provided function`, () => {
+      const state = {
+        mapIndex: {
+          "5ae40702-2d64-4ab6-b755-646bcf79a286": {
+            uuid: "5ae40702-2d64-4ab6-b755-646bcf79a286",
+            name: "one",
+          },
+          "ea9cb69e-0993-40ad-897d-41fae23f2a35": {
+            uuid: "ea9cb69e-0993-40ad-897d-41fae23f2a35",
+            name: "two",
+          },
+        },
+      };
+      const selectors = createSelectors({
+        // _export: true,
+        mapIndex: {
+          _type: "index",
+          _export: true,
+          maps: {
+            _type: "list",
+            _export: true,
+            // apply this function to the result of the root selector
+            _func: Object.values,
+            mapByName: {
+              _export: true,
+              _selectors: [createSelectFromProps("name")],
+              _func: (maps, name) => maps.find((map) => map.name === name),
+            },
+          },
+        },
+      });
+      expect(selectors.selectMaps(state)).toEqual(
+        Object.values(state.mapIndex)
+      );
+      expect(selectors.selectMapByName(state, { name: "one" })).toEqual(
+        state.mapIndex["5ae40702-2d64-4ab6-b755-646bcf79a286"]
+      );
+    });
+  });
+  describe(`accessing the root state without impacting the memoization`, () => {
+    describe(`providing additional selector functions`, () => {
+      it(`executes  additional selector functions and passes the result on to a provided function`, () => {
+        const state = {
+          mapIndex: {
+            "5ae40702-2d64-4ab6-b755-646bcf79a286": {
+              uuid: "5ae40702-2d64-4ab6-b755-646bcf79a286",
+              name: "one",
+            },
+            "ea9cb69e-0993-40ad-897d-41fae23f2a35": {
+              uuid: "ea9cb69e-0993-40ad-897d-41fae23f2a35",
+              name: "two",
+            },
+          },
+        };
+        const selectors = createSelectors({
+          // _export: true,
+          mapIndex: {
+            _type: "index",
+            maps: {
+              _type: "list",
+              // apply this function to the result of the root selector
+              _func: Object.values,
+              mapByName: {
+                _propsKeys: ["name"],
+                _func: (maps, name) => maps.find((map) => map.name === name),
+              },
+            },
+          },
+        });
+        expect(selectors.selectMaps(state)).toEqual(
+          Object.values(state.mapIndex)
+        );
+        expect(selectors.selectMapByName(state, { name: "one" })).toEqual(
+          state.mapIndex["5ae40702-2d64-4ab6-b755-646bcf79a286"]
+        );
+        selectors.selectMapByName(state, { name: "one" });
+        selectors.selectMapByName(state, { name: "one" });
+        selectors.selectMapByName(state, { name: "one" });
+        expect(selectors.selectMapByName.recomputations()).toEqual(1);
+        selectors.selectMapByName(state, { name: "two" });
+        expect(selectors.selectMapByName.recomputations()).toEqual(2);
+        selectors.selectMapByName({ ...state }, { name: "two" });
+        expect(selectors.selectMapByName.recomputations()).toEqual(2);
+        state.mapIndex["5ae40702-2d64-4ab6-b755-646bcf79a286"].label = "test";
+        const newState = {
+          ...state,
+          mapIndex: {
+            ...state.mapIndex,
+            "5ae40702-2d64-4ab6-b755-646bcf79a286": {
+              ...state.mapIndex["5ae40702-2d64-4ab6-b755-646bcf79a286"],
+              label: "test",
+            },
+          },
+        };
+        selectors.selectMapByName(newState, { name: "two" });
+        expect(selectors.selectMapByName.recomputations()).toEqual(3);
+        const newState2 = {
+          ...newState,
+          label: "test",
+        };
+        selectors.selectMapByName(newState2, { name: "two" });
+        expect(selectors.selectMapByName.recomputations()).toEqual(3);
       });
     });
   });
