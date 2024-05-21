@@ -1,4 +1,4 @@
-import R, { length, prop } from "ramda";
+import R, { curry, length, prop, union } from "ramda";
 
 const RESERVED_WORDS = [
   "_default",
@@ -11,6 +11,7 @@ const RESERVED_WORDS = [
   "_key",
   "_func",
   "_propsKeys",
+  "_selectors",
 ];
 
 const createStateSelector = (selectorSpec) => {
@@ -55,6 +56,59 @@ const createRootStateAwareSelector = (
   };
 };
 
+const getIsObjectsShallowlyEqual = (object1, object2) => {
+  if (Object.keys(object1).length !== Object.keys(object2).length) {
+    return false;
+  }
+
+  return Object.entries(object1).reduce((changeFound, [key, value]) => {
+    return changeFound && value === object2[key];
+  }, true);
+};
+
+const getIsShallowEqual = (previousArgument, currentArgument) => {
+  const isPreviousArgumentObject = previousArgument instanceof Object;
+  const isCurrentArgumentObject = currentArgument instanceof Object;
+  if (!isPreviousArgumentObject && !isCurrentArgumentObject) {
+    return previousArgument === currentArgument;
+  } else if (isPreviousArgumentObject && isCurrentArgumentObject) {
+    return getIsObjectsShallowlyEqual(previousArgument, currentArgument);
+  } else {
+    return false;
+  }
+};
+
+const getIsRecomputationRequired = (previousArguments, currentArguments) => {
+  return previousArguments[0] !== undefined &&
+    previousArguments[1] !== undefined
+    ? !isCachedResultValid(previousArguments, currentArguments)
+    : true;
+};
+
+function isCachedResultValid([previousState, previousProps], [state, props]) {
+  const isPropsSame = getIsShallowEqual(previousProps, props);
+  const isStateSame = getIsShallowEqual(previousState, state);
+  return isStateSame && isPropsSame;
+}
+
+const createMemoizedSelector = (outerStateAwareSelector) => {
+  let cachedResult;
+  let numberOfComputations = 0;
+  let previousArguments = [undefined, undefined];
+
+  const memoizedSelector = (outerState, props) => {
+    if (getIsRecomputationRequired(previousArguments, [outerState, props])) {
+      previousArguments = [outerState, props];
+      numberOfComputations++;
+      cachedResult = outerStateAwareSelector(outerState, props);
+    }
+    return cachedResult;
+  };
+
+  memoizedSelector.recomputations = () => numberOfComputations;
+  return memoizedSelector;
+};
+
 function createSelectorFunction(
   propertyName,
   selectorSpecification,
@@ -94,10 +148,17 @@ function createSelectorFunction(
       ? outerState[propertyName]
       : defaultValue;
   };
-  return createRootStateAwareSelector(
+
+  const memoizedSelector = createMemoizedSelector(outerStateAwareSelector);
+
+  const rootStateSelector = createRootStateAwareSelector(
     outerStateSelector,
-    outerStateAwareSelector
+    memoizedSelector
   );
+
+  rootStateSelector.recomputations = memoizedSelector.recomputations;
+
+  return rootStateSelector;
 }
 
 function expandSelectors(
