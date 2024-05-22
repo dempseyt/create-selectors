@@ -109,6 +109,10 @@ const createMemoizedSelector = (outerStateAwareSelector) => {
   return memoizedSelector;
 };
 
+const resolvePropertyName = (propertyName) => {
+  return propertyName.startsWith("$") ? propertyName.slice(1) : propertyName;
+};
+
 function createSelectorFunction(
   propertyName,
   selectorSpecification,
@@ -116,6 +120,7 @@ function createSelectorFunction(
 ) {
   const defaultValue = getDefaultForPropertySelector(selectorSpecification);
   const outerStateAwareSelector = (outerState, props) => {
+    const resolvedPropertyName = resolvePropertyName(propertyName);
     if (Object.hasOwn(selectorSpecification, "_key")) {
       const key = selectorSpecification["_key"];
       const indexKey = props[key];
@@ -142,10 +147,10 @@ function createSelectorFunction(
       return selectorSpecification["_func"](outerState, ...propArgs);
     }
 
-    return outerState[propertyName] !== undefined &&
-      Object.hasOwn(outerState, propertyName) &&
-      outerState[propertyName] !== undefined
-      ? outerState[propertyName]
+    return outerState[resolvedPropertyName] !== undefined &&
+      Object.hasOwn(outerState, resolvedPropertyName) &&
+      outerState[resolvedPropertyName] !== undefined
+      ? outerState[resolvedPropertyName]
       : defaultValue;
   };
 
