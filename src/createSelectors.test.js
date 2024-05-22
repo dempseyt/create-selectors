@@ -756,4 +756,16 @@ describe(`create-selectors.js`, () => {
       });
     });
   });
+  describe(`changing the export behaviour`, () => {
+    it(`exports a selector by default or if the _export flag is set to true`, () => {
+      const selectors = createSelectors({
+        simpleString1: {},
+        simpleString2: {
+          _export: true,
+        },
+      });
+      expect(selectors.selectSimpleString1).not.toBeUndefined();
+      expect(selectors.selectSimpleString2).not.toBeUndefined();
+    });
+  });
 });
