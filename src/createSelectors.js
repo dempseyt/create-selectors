@@ -161,6 +161,9 @@ function createSelectorFunction(
   return rootStateSelector;
 }
 
+const getIsForExport = (propertyName, selectorSpecification) =>
+  !propertyName.startsWith("$") && selectorSpecification._export !== false;
+
 function expandSelectors(
   selectorSpecifications,
   selectors = {
@@ -173,13 +176,13 @@ function expandSelectors(
     (selectors, [propertyName, selectorSpecification]) => {
       if (RESERVED_WORDS.includes(propertyName)) {
         return selectors;
-      } else if (selectorSpecification._export !== false) {
+      } else {
         const currentSelector = createSelectorFunction(
           propertyName,
           selectorSpecification,
           parentSelector
         );
-
+        const isForExport = getIsForExport(propertyName, selectorSpecification);
         if (
           Object.hasOwn(selectorSpecification, "_name") &&
           Object.hasOwn(selectorSpecification, "_names")
@@ -194,6 +197,7 @@ function expandSelectors(
               names: [name],
               _nameProvided: true,
               propertySelector: currentSelector,
+              isForExport,
             });
           });
         } else if (Object.hasOwn(selectorSpecification, "_name")) {
@@ -201,16 +205,19 @@ function expandSelectors(
             names: [selectorSpecification._name],
             _nameProvided: true,
             propertySelector: currentSelector,
+            isForExport,
           });
         } else if (Object.hasOwn(selectorSpecification, "_alternative")) {
           selectors.withAlternativeName.push({
             names: [selectorSpecification._alternative],
             propertySelector: currentSelector,
+            isForExport,
           });
         } else {
           selectors.withOneName.push({
             names: [propertyName],
             propertySelector: currentSelector,
+            isForExport,
           });
         }
 
@@ -220,7 +227,6 @@ function expandSelectors(
           currentSelector
         );
       }
-      return selectors;
     },
     selectors
   );
@@ -236,10 +242,13 @@ function createSelectors(selectorSpecifications) {
     undefined,
     rootStateSelector
   );
-  const createSelector = (
-    selectorsWithMethodNames,
-    { names, _nameProvided, propertySelector }
+  const createSelectorReducer = (
+    accumulatedSelectors,
+    { names, _nameProvided, propertySelector, isForExport }
   ) => {
+    if (!isForExport) {
+      return accumulatedSelectors;
+    }
     const selectorNames = names.map((name) => {
       if (_nameProvided) {
         return name;
@@ -247,26 +256,27 @@ function createSelectors(selectorSpecifications) {
       return createSelectorName(name);
     });
     for (const selectorName of selectorNames) {
-      if (!Object.hasOwn(selectorsWithMethodNames, selectorName)) {
-        selectorsWithMethodNames[selectorName] = propertySelector;
-        return selectorsWithMethodNames;
+      if (!Object.hasOwn(accumulatedSelectors, selectorName)) {
+        accumulatedSelectors[selectorName] = propertySelector;
+        return accumulatedSelectors;
       }
     }
     throwInvariantErrorMsg(selectorNames);
   };
 
-  const uncheckedSelectorNames =
+  const selectorsWithSingleName =
     selectorsWithAndWithoutAlternatives.withOneName.reduce(
-      createSelector,
+      createSelectorReducer,
       selectors
     );
 
-  const checkedSelectorNames =
+  const renamedSelectors =
     selectorsWithAndWithoutAlternatives.withAlternativeName.reduce(
-      createSelector,
-      uncheckedSelectorNames
+      createSelectorReducer,
+      selectorsWithSingleName
     );
-  return checkedSelectorNames;
+
+  return renamedSelectors;
 }
 
 export default createSelectors;
