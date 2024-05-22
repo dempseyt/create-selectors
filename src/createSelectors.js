@@ -12,6 +12,7 @@ const RESERVED_WORDS = [
   "_func",
   "_propsKeys",
   "_selectors",
+  "_stateToProps",
 ];
 
 const createStateSelector = (selectorSpec) => {
@@ -169,6 +170,21 @@ function createSelectorFunction(
 const getIsForExport = (propertyName, selectorSpecification) =>
   !propertyName.startsWith("$") && selectorSpecification._export !== false;
 
+const createSelectorWithInjectedProps = (selector, selectorSpecification) => {
+  if (Object.hasOwn(selectorSpecification, "_stateToProps")) {
+    return (state, props) => {
+      const propsToInject = Object.entries(
+        selectorSpecification["_stateToProps"]
+      ).reduce((propsToInject, [key, currentSelector]) => {
+        return { ...propsToInject, [key]: currentSelector(state, props) };
+      }, props);
+      return selector(state, propsToInject);
+    };
+  }
+
+  return selector;
+};
+
 function expandSelectors(
   selectorSpecifications,
   selectors = {
@@ -188,6 +204,10 @@ function expandSelectors(
           parentSelector
         );
         const isForExport = getIsForExport(propertyName, selectorSpecification);
+        const selectorWithInjectedProps = createSelectorWithInjectedProps(
+          currentSelector,
+          selectorSpecification
+        );
         if (
           Object.hasOwn(selectorSpecification, "_name") &&
           Object.hasOwn(selectorSpecification, "_names")
@@ -196,12 +216,13 @@ function expandSelectors(
             `Invariant failed: You cannot use _name (${selectorSpecification["_name"]}) and _names (${selectorSpecification["_names"]}) at the same time.`
           );
         }
+
         if (Object.hasOwn(selectorSpecification, "_names")) {
           selectorSpecification["_names"].map((name) => {
             selectors.withOneName.push({
               names: [name],
               _nameProvided: true,
-              propertySelector: currentSelector,
+              propertySelector: selectorWithInjectedProps,
               isForExport,
             });
           });
@@ -209,19 +230,19 @@ function expandSelectors(
           selectors.withOneName.push({
             names: [selectorSpecification._name],
             _nameProvided: true,
-            propertySelector: currentSelector,
+            propertySelector: selectorWithInjectedProps,
             isForExport,
           });
         } else if (Object.hasOwn(selectorSpecification, "_alternative")) {
           selectors.withAlternativeName.push({
             names: [selectorSpecification._alternative],
-            propertySelector: currentSelector,
+            propertySelector: selectorWithInjectedProps,
             isForExport,
           });
         } else {
           selectors.withOneName.push({
             names: [propertyName],
-            propertySelector: currentSelector,
+            propertySelector: selectorWithInjectedProps,
             isForExport,
           });
         }
@@ -229,7 +250,7 @@ function expandSelectors(
         return expandSelectors(
           selectorSpecification,
           selectors,
-          currentSelector
+          selectorWithInjectedProps
         );
       }
     },
