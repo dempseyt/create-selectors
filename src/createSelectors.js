@@ -192,76 +192,92 @@ const createSelectorWithInjectedProps = (selector, selectorSpecification) => {
   return selector;
 };
 
-function expandSelectors(
-  selectorSpecifications,
-  selectors = {
-    withOneName: [],
-    withAlternativeName: [],
-  },
-  parentSelector
+function createSelectorDefinitions(
+  currentSelector,
+  propertyName,
+  selectorSpecification
 ) {
+  if (
+    Object.hasOwn(selectorSpecification, "_name") &&
+    Object.hasOwn(selectorSpecification, "_names")
+  ) {
+    throw new Error(
+      `Invariant failed: You cannot use _name (${selectorSpecification["_name"]}) and _names (${selectorSpecification["_names"]}) at the same time.`
+    );
+  }
+
+  const isForExport = getIsForExport(propertyName, selectorSpecification);
+  const selectorWithInjectedProps = createSelectorWithInjectedProps(
+    currentSelector,
+    selectorSpecification
+  );
+
+  if (Object.hasOwn(selectorSpecification, "_names")) {
+    return selectorSpecification["_names"].map((name) => {
+      return {
+        names: [name],
+        _nameProvided: true,
+        propertySelector: selectorWithInjectedProps,
+        isForExport,
+      };
+    });
+  } else if (Object.hasOwn(selectorSpecification, "_name")) {
+    return [
+      {
+        names: [selectorSpecification._name],
+        _nameProvided: true,
+        propertySelector: selectorWithInjectedProps,
+        isForExport,
+      },
+    ];
+  } else if (Object.hasOwn(selectorSpecification, "_alternative")) {
+    return [
+      {
+        names: [selectorSpecification._alternative],
+        propertySelector: selectorWithInjectedProps,
+        isForExport,
+      },
+    ];
+  } else {
+    return [
+      {
+        names: [propertyName],
+        propertySelector: selectorWithInjectedProps,
+        isForExport,
+      },
+    ];
+  }
+}
+
+function createSelectorsDefinitions(selectorSpecifications, parentSelector) {
   return Object.entries(selectorSpecifications).reduce(
-    (selectors, [propertyName, selectorSpecification]) => {
-      if (RESERVED_WORDS.includes(propertyName)) {
-        return selectors;
+    (selectorDefinitions, [selectorKeyName, selectorSpecification]) => {
+      if (RESERVED_WORDS.includes(selectorKeyName)) {
+        return selectorDefinitions;
       } else {
         const currentSelector = createSelectorFunction(
-          propertyName,
+          selectorKeyName,
           selectorSpecification,
           parentSelector
         );
-        const isForExport = getIsForExport(propertyName, selectorSpecification);
-        const selectorWithInjectedProps = createSelectorWithInjectedProps(
+
+        const currentSelectorDefinitions = createSelectorDefinitions(
           currentSelector,
+          selectorKeyName,
           selectorSpecification
         );
-        if (
-          Object.hasOwn(selectorSpecification, "_name") &&
-          Object.hasOwn(selectorSpecification, "_names")
-        ) {
-          throw new Error(
-            `Invariant failed: You cannot use _name (${selectorSpecification["_name"]}) and _names (${selectorSpecification["_names"]}) at the same time.`
-          );
-        }
-
-        if (Object.hasOwn(selectorSpecification, "_names")) {
-          selectorSpecification["_names"].map((name) => {
-            selectors.withOneName.push({
-              names: [name],
-              _nameProvided: true,
-              propertySelector: selectorWithInjectedProps,
-              isForExport,
-            });
-          });
-        } else if (Object.hasOwn(selectorSpecification, "_name")) {
-          selectors.withOneName.push({
-            names: [selectorSpecification._name],
-            _nameProvided: true,
-            propertySelector: selectorWithInjectedProps,
-            isForExport,
-          });
-        } else if (Object.hasOwn(selectorSpecification, "_alternative")) {
-          selectors.withAlternativeName.push({
-            names: [selectorSpecification._alternative],
-            propertySelector: selectorWithInjectedProps,
-            isForExport,
-          });
-        } else {
-          selectors.withOneName.push({
-            names: [propertyName],
-            propertySelector: selectorWithInjectedProps,
-            isForExport,
-          });
-        }
-
-        return expandSelectors(
-          selectorSpecification,
-          selectors,
-          selectorWithInjectedProps
-        );
+        return [
+          ...selectorDefinitions,
+          ...createSelectorsDefinitions(
+            selectorSpecification,
+            currentSelector,
+            currentSelectorDefinitions
+          ),
+          ...currentSelectorDefinitions,
+        ];
       }
     },
-    selectors
+    []
   );
 }
 
@@ -270,9 +286,8 @@ function createSelectors(selectorSpecifications) {
   const selectors = {
     selectState: rootStateSelector,
   };
-  const selectorsWithAndWithoutAlternatives = expandSelectors(
+  const selectorDefinitions = createSelectorsDefinitions(
     selectorSpecifications,
-    undefined,
     rootStateSelector
   );
   const createSelectorReducer = (
@@ -297,19 +312,7 @@ function createSelectors(selectorSpecifications) {
     throwInvariantErrorMsg(selectorNames);
   };
 
-  const selectorsWithSingleName =
-    selectorsWithAndWithoutAlternatives.withOneName.reduce(
-      createSelectorReducer,
-      selectors
-    );
-
-  const renamedSelectors =
-    selectorsWithAndWithoutAlternatives.withAlternativeName.reduce(
-      createSelectorReducer,
-      selectorsWithSingleName
-    );
-
-  return renamedSelectors;
+  return selectorDefinitions.reduce(createSelectorReducer, selectors);
 }
 
 export default createSelectors;
