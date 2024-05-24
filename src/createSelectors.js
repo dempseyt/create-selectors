@@ -129,23 +129,26 @@ function createSelectorFunction(
     }
 
     if (Object.hasOwn(selectorSpecification, "_func")) {
-      let propArgs = [];
+      let propValues = [];
       if (Object.hasOwn(selectorSpecification, "_propsKeys")) {
-        propArgs = selectorSpecification._propsKeys.reduce(
-          (args, currentKey) => {
-            args.push(props[currentKey]);
-            return args;
+        propValues = selectorSpecification._propsKeys.reduce(
+          (propArgs, propKey) => {
+            propArgs.push(props[propKey]);
+            return propArgs;
           },
           []
         );
       } else if (Object.hasOwn(selectorSpecification, "_selectors")) {
-        propArgs = selectorSpecification._selectors.reduce((args, selector) => {
-          args.push(selector(outerState, props));
-          return args;
-        }, []);
+        propValues = selectorSpecification._selectors.reduce(
+          (args, selector) => {
+            args.push(selector(outerState, props));
+            return args;
+          },
+          []
+        );
       }
 
-      return selectorSpecification["_func"](outerState, ...propArgs);
+      return selectorSpecification["_func"](outerState, ...propValues);
     }
 
     return outerState[resolvedPropertyName] !== undefined &&
@@ -176,7 +179,11 @@ const createSelectorWithInjectedProps = (selector, selectorSpecification) => {
       const propsToInject = Object.entries(
         selectorSpecification["_stateToProps"]
       ).reduce((propsToInject, [key, currentSelector]) => {
-        return { ...propsToInject, [key]: currentSelector(state, props) };
+        return {
+          ...propsToInject,
+          [key]: currentSelector(state, props),
+          ...props,
+        };
       }, props);
       return selector(state, propsToInject);
     };
