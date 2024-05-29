@@ -1,4 +1,4 @@
-import R, { curry, length, prop, union } from "ramda";
+import R, { all, curry, length, prop, union } from "ramda";
 
 const RESERVED_WORDS = [
   "_default",
@@ -173,28 +173,28 @@ function createSelectorFunction(
 const getIsForExport = (propertyName, selectorSpecification) =>
   !propertyName.startsWith("$") && selectorSpecification._export !== false;
 
-const createSelectorWithInjectedProps = (selector, selectorSpecification) => {
-  if (Object.hasOwn(selectorSpecification, "_stateToProps")) {
-    return (state, props) => {
-      const propsToInject = Object.entries(
-        selectorSpecification["_stateToProps"]
-      ).reduce((propsToInject, [key, currentSelector]) => {
-        return {
-          ...propsToInject,
-          [key]: currentSelector(state, props),
-          ...props,
-        };
-      }, props);
-      return selector(state, propsToInject);
-    };
-  }
-  return selector;
+const createSelectorWithInjectedProps = (
+  selector,
+  allPropsToInjectFromStateToProps
+) => {
+  const selectorWithInjectedProps = (state, props) => {
+    const calculatedInjectedProps = Object.entries(
+      allPropsToInjectFromStateToProps
+    ).reduce((propsToInject, [key, currentSelector]) => {
+      propsToInject[key] = currentSelector(state, props);
+      return propsToInject;
+    }, {});
+    return selector(state, { ...calculatedInjectedProps, ...props });
+  };
+  selectorWithInjectedProps.recomputations = selector.recomputations;
+  return selectorWithInjectedProps;
 };
 
 function createSelectorDefinitions(
   currentSelector,
   propertyName,
-  selectorSpecification
+  selectorSpecification,
+  propsToInject
 ) {
   if (
     Object.hasOwn(selectorSpecification, "_name") &&
@@ -208,7 +208,7 @@ function createSelectorDefinitions(
   const isForExport = getIsForExport(propertyName, selectorSpecification);
   const selectorWithInjectedProps = createSelectorWithInjectedProps(
     currentSelector,
-    selectorSpecification
+    propsToInject
   );
 
   if (Object.hasOwn(selectorSpecification, "_names")) {
@@ -248,7 +248,11 @@ function createSelectorDefinitions(
   }
 }
 
-function createSelectorsDefinitions(selectorSpecifications, parentSelector) {
+function createSelectorsDefinitions(
+  selectorSpecifications,
+  parentSelector,
+  propsToInject
+) {
   return Object.entries(selectorSpecifications).reduce(
     (selectorDefinitions, [selectorKeyName, selectorSpecification]) => {
       if (RESERVED_WORDS.includes(selectorKeyName)) {
@@ -260,30 +264,33 @@ function createSelectorsDefinitions(selectorSpecifications, parentSelector) {
           parentSelector
         );
 
+        const specificationPropsToInject =
+          selectorSpecification._stateToProps ??
+          selectorSpecifications._stateToProps ??
+          {};
+
+        const passedDownProps = propsToInject;
+
+        const mergedPropsToInject = {
+          ...passedDownProps,
+          ...specificationPropsToInject,
+        };
         const currentSelectorDefinitions = createSelectorDefinitions(
           currentSelector,
           selectorKeyName,
-          selectorSpecification
+          selectorSpecification,
+          mergedPropsToInject
         );
 
         const nestedSelectorsDefinitions = createSelectorsDefinitions(
           selectorSpecification,
           currentSelector,
-          currentSelectorDefinitions
+          mergedPropsToInject
         );
-
-        const propInjectedSelectorNestedDefinitions =
-          nestedSelectorsDefinitions.map((selectorDefinition) => ({
-            ...selectorDefinition,
-            propertySelector: createSelectorWithInjectedProps(
-              selectorDefinition.propertySelector,
-              selectorSpecifications
-            ),
-          }));
 
         return [
           ...selectorDefinitions,
-          ...propInjectedSelectorNestedDefinitions,
+          ...nestedSelectorsDefinitions,
           ...currentSelectorDefinitions,
         ];
       }
