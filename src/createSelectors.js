@@ -188,7 +188,6 @@ const createSelectorWithInjectedProps = (selector, selectorSpecification) => {
       return selector(state, propsToInject);
     };
   }
-
   return selector;
 };
 
@@ -266,13 +265,25 @@ function createSelectorsDefinitions(selectorSpecifications, parentSelector) {
           selectorKeyName,
           selectorSpecification
         );
+
+        const nestedSelectorsDefinitions = createSelectorsDefinitions(
+          selectorSpecification,
+          currentSelector,
+          currentSelectorDefinitions
+        );
+
+        const propInjectedSelectorNestedDefinitions =
+          nestedSelectorsDefinitions.map((selectorDefinition) => ({
+            ...selectorDefinition,
+            propertySelector: createSelectorWithInjectedProps(
+              selectorDefinition.propertySelector,
+              selectorSpecifications
+            ),
+          }));
+
         return [
           ...selectorDefinitions,
-          ...createSelectorsDefinitions(
-            selectorSpecification,
-            currentSelector,
-            currentSelectorDefinitions
-          ),
+          ...propInjectedSelectorNestedDefinitions,
           ...currentSelectorDefinitions,
         ];
       }
