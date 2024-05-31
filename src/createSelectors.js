@@ -195,17 +195,23 @@ function createSelectorFunction(
       : defaultValue;
   };
 
-  return createSelectorWithLogging(
-    createSelectorWithRootAndAllPassedInProps(
-      createRootStateAwareSelector(
-        outerStateSelector,
-        createMemoizedSelector(outerStateAwareSelector)
+  const createNewInstance = () =>
+    createSelectorWithLogging(
+      createSelectorWithRootAndAllPassedInProps(
+        createRootStateAwareSelector(
+          outerStateSelector,
+          createMemoizedSelector(outerStateAwareSelector)
+        ),
+        selectorSpecification
       ),
+      propertyName,
       selectorSpecification
-    ),
-    propertyName,
-    selectorSpecification
-  );
+    );
+
+  const wrappedSelector = createNewInstance();
+  wrappedSelector.newInstance = createNewInstance;
+
+  return wrappedSelector;
 }
 
 const getIsForExport = (propertyName, selectorSpecification) =>
@@ -225,6 +231,7 @@ const createSelectorWithInjectedProps = (
     return selector(state, { ...calculatedInjectedProps, ...props });
   };
   selectorWithInjectedProps.recomputations = selector.recomputations;
+  selectorWithInjectedProps.newInstance = selector.newInstance;
   return selectorWithInjectedProps;
 };
 
