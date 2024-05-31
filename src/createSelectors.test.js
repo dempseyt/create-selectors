@@ -990,4 +990,51 @@ describe(`create-selectors.js`, () => {
       ]);
     });
   });
+  describe(`create new instances of a selector`, () => {
+    describe(`simple case`, () => {
+      const state = {
+        greeting: "Hello",
+      };
+      it(`creating new cache independent selectors`, () => {
+        const { selectGreeting } = createSelectors({
+          greeting: {
+            _propsKeys: ["name"],
+            _func: ({ greeting }, name) => `${greeting} ${name}`,
+          },
+        });
+
+        const selectGreetingKarl = selectGreeting.newInstance();
+        const selectGreetingMary = selectGreeting.newInstance();
+        expect(selectGreeting(state, { name: "Tom" })).toMatchInlineSnapshot(
+          `"Hello Tom"`
+        );
+
+        expect(
+          selectGreetingKarl(state, { name: "Karl" })
+        ).toMatchInlineSnapshot(`"Hello Karl"`);
+        expect(selectGreetingKarl.recomputations()).toEqual(1);
+
+        expect(
+          selectGreetingMary(state, { name: "Mary" })
+        ).toMatchInlineSnapshot(`"Hello Mary"`);
+        expect(selectGreetingKarl.recomputations()).toEqual(1);
+        expect(selectGreetingMary.recomputations()).toEqual(1);
+
+        expect(
+          selectGreeting(state, { name: "Gilford" })
+        ).toMatchInlineSnapshot(`"Hello Gilford"`);
+
+        expect(
+          selectGreetingKarl(state, { name: "Karl" })
+        ).toMatchInlineSnapshot(`"Hello Karl"`);
+        expect(selectGreetingKarl.recomputations()).toEqual(1);
+
+        expect(
+          selectGreetingMary(state, { name: "Mary" })
+        ).toMatchInlineSnapshot(`"Hello Mary"`);
+        expect(selectGreetingKarl.recomputations()).toEqual(1);
+        expect(selectGreetingMary.recomputations()).toEqual(1);
+      });
+    });
+  });
 });
