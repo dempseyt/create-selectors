@@ -1036,5 +1036,65 @@ describe(`create-selectors.js`, () => {
         expect(selectGreetingMary.recomputations()).toEqual(1);
       });
     });
+    describe(`with state-to-props`, () => {
+      const state = {
+        time: "10:00",
+        meeting: {
+          greeting: "Hello",
+        },
+      };
+      it(`creating new cache independent selectors`, () => {
+        const { selectTime } = createSelectors(
+          {
+            time: {},
+          },
+          R.identity
+        );
+        const { selectGreeting } = createSelectors({
+          meeting: {
+            _stateToProps: {
+              time: selectTime,
+            },
+            greeting: {
+              _propsKeys: ["name", "time"],
+              _func: ({ greeting }, name, time) =>
+                `${greeting} ${name} [${time}]`,
+            },
+          },
+        });
+
+        const selectGreetingKarl = selectGreeting.newInstance();
+        const selectGreetingMary = selectGreeting.newInstance();
+        expect(selectGreeting(state, { name: "Tom" })).toMatchInlineSnapshot(
+          `"Hello Tom [10:00]"`
+        );
+
+        expect(
+  selectGreetingKarl(state, { name: "Karl" })
+).toMatchInlineSnapshot(`"Hello Karl [undefined]"`);
+        expect(selectGreetingKarl.recomputations()).toEqual(1);
+
+        expect(
+  selectGreetingMary(state, { name: "Mary" })
+).toMatchInlineSnapshot(`"Hello Mary [undefined]"`);
+        expect(selectGreetingKarl.recomputations()).toEqual(1);
+        expect(selectGreetingMary.recomputations()).toEqual(1);
+
+        expect(
+  selectGreeting(state, { name: "Gilford" })
+).toMatchInlineSnapshot(`"Hello Gilford [10:00]"`);
+
+        expect(
+  selectGreetingKarl(state, { name: "Karl" })
+).toMatchInlineSnapshot(`"Hello Karl [undefined]"`);
+        expect(selectGreetingKarl.recomputations()).toEqual(1);
+
+        expect(
+  selectGreetingMary(state, { name: "Mary" })
+).toMatchInlineSnapshot(`"Hello Mary [undefined]"`);
+        expect(selectGreetingKarl.recomputations()).toEqual(1);
+        expect(selectGreetingMary.recomputations()).toEqual(1);
+      });
+    });
   });
 });
