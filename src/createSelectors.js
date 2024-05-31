@@ -13,6 +13,7 @@ const RESERVED_WORDS = [
   "_propsKeys",
   "_selectors",
   "_stateToProps",
+  "_log",
 ];
 
 const createStateSelector = (selectorSpec) => {
@@ -37,6 +38,25 @@ function getDefaultValueForType(type) {
   } else if (type === "index") {
     return {};
   }
+}
+
+function createSelectorWithLogging(
+  selector,
+  propertyName,
+  selectorSpecification
+) {
+  const selectorWithLogging = (state, props) => {
+    if (selectorSpecification._log) {
+      console.log("---- OUT ---- state ----", state);
+      console.log(
+        `---- OUT ---- select-${propertyName}-from-parent ----`,
+        selector(state, props)
+      );
+    }
+    return selector(state, props);
+  };
+  selectorWithLogging.recomputations = selector.recomputations;
+  return selectorWithLogging;
 }
 
 function getDefaultForPropertySelector(propertySelectorSpec) {
@@ -175,16 +195,17 @@ function createSelectorFunction(
       : defaultValue;
   };
 
-  const selectorWithRootAndAllPassedInProps =
+  return createSelectorWithLogging(
     createSelectorWithRootAndAllPassedInProps(
       createRootStateAwareSelector(
         outerStateSelector,
         createMemoizedSelector(outerStateAwareSelector)
       ),
       selectorSpecification
-    );
-
-  return selectorWithRootAndAllPassedInProps;
+    ),
+    propertyName,
+    selectorSpecification
+  );
 }
 
 const getIsForExport = (propertyName, selectorSpecification) =>
