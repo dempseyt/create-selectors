@@ -51,10 +51,13 @@ const createRootStateAwareSelector = (
   outerStateSelector,
   outerStateAwareSelector
 ) => {
-  return (rootState, props) => {
+  const rootStateAwareSelector = (rootState, props) => {
     const outerState = outerStateSelector(rootState, props);
     return outerStateAwareSelector(outerState, props);
   };
+  rootStateAwareSelector.recomputations =
+    outerStateAwareSelector.recomputations;
+  return rootStateAwareSelector;
 };
 
 const getIsObjectsShallowlyEqual = (object1, object2) => {
@@ -114,6 +117,39 @@ const resolvePropertyName = (propertyName) => {
   return propertyName.startsWith("$") ? propertyName.slice(1) : propertyName;
 };
 
+function createSelectorWithRootAndAllPassedInProps(
+  selector,
+  selectorSpecification
+) {
+  const selectorWithRootAndAllPassedInProps = (state, props) => {
+    if (Object.hasOwn(selectorSpecification, "_func")) {
+      let propValues = [];
+      if (Object.hasOwn(selectorSpecification, "_propsKeys")) {
+        propValues = selectorSpecification._propsKeys.reduce(
+          (propArgs, propKey) => {
+            propArgs.push(props[propKey]);
+            return propArgs;
+          },
+          []
+        );
+      } else if (Object.hasOwn(selectorSpecification, "_selectors")) {
+        propValues = selectorSpecification._selectors.reduce(
+          (args, selector) => {
+            args.push(selector(state, props));
+            return args;
+          },
+          []
+        );
+      }
+      return selector(state, propValues);
+    }
+    return selector(state, props);
+  };
+
+  selectorWithRootAndAllPassedInProps.recomputations = selector.recomputations;
+  return selectorWithRootAndAllPassedInProps;
+}
+
 function createSelectorFunction(
   propertyName,
   selectorSpecification,
@@ -129,26 +165,7 @@ function createSelectorFunction(
     }
 
     if (Object.hasOwn(selectorSpecification, "_func")) {
-      let propValues = [];
-      if (Object.hasOwn(selectorSpecification, "_propsKeys")) {
-        propValues = selectorSpecification._propsKeys.reduce(
-          (propArgs, propKey) => {
-            propArgs.push(props[propKey]);
-            return propArgs;
-          },
-          []
-        );
-      } else if (Object.hasOwn(selectorSpecification, "_selectors")) {
-        propValues = selectorSpecification._selectors.reduce(
-          (args, selector) => {
-            args.push(selector(outerState, props));
-            return args;
-          },
-          []
-        );
-      }
-
-      return selectorSpecification["_func"](outerState, ...propValues);
+      return selectorSpecification["_func"](outerState, ...props);
     }
 
     return outerState[resolvedPropertyName] !== undefined &&
@@ -158,16 +175,16 @@ function createSelectorFunction(
       : defaultValue;
   };
 
-  const memoizedSelector = createMemoizedSelector(outerStateAwareSelector);
+  const finalSelectorWithRootAndAllPassedInProps =
+    createSelectorWithRootAndAllPassedInProps(
+      createRootStateAwareSelector(
+        outerStateSelector,
+        createMemoizedSelector(outerStateAwareSelector)
+      ),
+      selectorSpecification
+    );
 
-  const rootStateSelector = createRootStateAwareSelector(
-    outerStateSelector,
-    memoizedSelector
-  );
-
-  rootStateSelector.recomputations = memoizedSelector.recomputations;
-
-  return rootStateSelector;
+  return finalSelectorWithRootAndAllPassedInProps;
 }
 
 const getIsForExport = (propertyName, selectorSpecification) =>
