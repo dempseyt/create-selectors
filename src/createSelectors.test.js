@@ -689,6 +689,22 @@ describe(`create-selectors.js`, () => {
         state.mapIndex["5ae40702-2d64-4ab6-b755-646bcf79a286"]
       );
     });
+    it(`executes additional selector functions using the root state`, () => {
+      const { selectSimpleString } = createSelectors({
+        simpleString: {},
+      });
+      const { selectCombinedSimpleStrings } = createSelectors({
+        rootOne: {
+          simpleString: {
+            combinedSimpleStrings: {
+              _selectors: [selectSimpleString],
+              _func: (string1, string2) => `${string1} ${string2}`,
+            },
+          },
+        },
+      });
+      expect(selectCombinedSimpleStrings(state)).toEqual("r1: three three");
+    });
   });
   describe(`accessing the root state without impacting the memoization`, () => {
     describe(`providing additional selector functions`, () => {

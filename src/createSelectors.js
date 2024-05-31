@@ -175,7 +175,7 @@ function createSelectorFunction(
       : defaultValue;
   };
 
-  const finalSelectorWithRootAndAllPassedInProps =
+  const selectorWithRootAndAllPassedInProps =
     createSelectorWithRootAndAllPassedInProps(
       createRootStateAwareSelector(
         outerStateSelector,
@@ -184,7 +184,7 @@ function createSelectorFunction(
       selectorSpecification
     );
 
-  return finalSelectorWithRootAndAllPassedInProps;
+  return selectorWithRootAndAllPassedInProps;
 }
 
 const getIsForExport = (propertyName, selectorSpecification) =>
