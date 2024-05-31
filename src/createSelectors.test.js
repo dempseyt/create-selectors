@@ -979,22 +979,15 @@ describe(`create-selectors.js`, () => {
         },
       });
       selectSimpleBoolean(state, {});
-      expect(console.log.mock.calls).toMatchInlineSnapshot(`
-        Array [
-          Array [
-            "---- OUT ---- state ----
-        ",
-            Object {
-              "simpleBoolean": false,
-            },
-          ],
-          Array [
-            "---- OUT ---- select-simpleBoolean-from-parent ----
-        ",
-            false,
-          ],
-        ]
-      `);
+      expect(console.log.mock.calls).toEqual([
+        [
+          "---- OUT ---- state ----",
+          {
+            simpleBoolean: false,
+          },
+        ],
+        ["---- OUT ---- select-simpleBoolean-from-parent ----", false],
+      ]);
     });
   });
 });
