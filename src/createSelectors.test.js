@@ -966,4 +966,35 @@ describe(`create-selectors.js`, () => {
       ]);
     });
   });
+  describe(`logging selectors`, () => {
+    const state = {
+      simpleBoolean: false,
+    };
+    it(`logs the input and output of a selector when the _log flag is enabled`, () => {
+      console.log = jest.fn();
+      // pretend jest.fn returns identity function
+      const { selectSimpleBoolean } = createSelectors({
+        simpleBoolean: {
+          _log: true,
+        },
+      });
+      selectSimpleBoolean(state, {});
+      expect(console.log.mock.calls).toMatchInlineSnapshot(`
+        Array [
+          Array [
+            "---- OUT ---- state ----
+        ",
+            Object {
+              "simpleBoolean": false,
+            },
+          ],
+          Array [
+            "---- OUT ---- select-simpleBoolean-from-parent ----
+        ",
+            false,
+          ],
+        ]
+      `);
+    });
+  });
 });
